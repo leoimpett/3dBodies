@@ -274,12 +274,50 @@ def resize_all_bodies(bodies, center_point, mean_limbs_lengths):
 def interactive_skeleton(body):
     """Plot an interactive body with which we can play. Only call this function on a complete body (for now)"""
     def refresh(_):
-        lines.x, lines.y = [[0, scat.x[1], scat.x[0]],[0, scat.y[1], scat.y[0]]]
+        left_arm.x, left_arm.y = [[p[2][0], scat.x[0], scat.x[1]],[p[2][1], scat.y[0], scat.y[1]]]
+        right_arm.x, right_arm.y = [[p[6][0], scat.x[2], scat.x[3]],[p[6][1], scat.y[2], scat.y[3]]]
+        left_leg.x, left_leg.y = [[p[9][0], scat.x[4], scat.x[5]],[p[9][1], scat.y[4], scat.y[5]]]
+        right_leg.x, right_leg.y = [[p[13][0], scat.x[6], scat.x[7]],[p[13][1], scat.y[6], scat.y[7]]]
+        
+        #update body
+        to_update_points = [3,4,7,8,10,11,14,15]
+        for i in range(len(to_update_points)):
+            body[0][to_update_points[i]] = [scat.x[i], scat.y[i]]
+        
+        #body = (p, l, i)
+    
+   
+    p = body[0]
     scales = {'x': bqp.LinearScale(min= 0, max= 1000),
              'y' : bqp.LinearScale(min = 1000, max = 0)}
-    scat = bqp.Scatter(scales = scales, enable_move = True, update_on_move = True)
-    lines = bqp.Lines(scales=scales)
-    scat.x , scat.y = [[1000, 0],[1000, 0]]
-    lines.x, lines.y = [scat.x,scat.y]
+    
+    #draw the chest
+    chest = bqp.Lines(scales=scales)
+    chest.x, chest.y = np.transpose([p[1], p[2], p[9], p[13], p[6], p[1], p[0]])
+    
+    #draw the head
+    head_x = np.cos(np.linspace(0, 2*np.pi, 100))*60+p[0][0]
+    head_y = np.sin(np.linspace(0, 2*np.pi, 100))*65+p[0][1]
+    head = bqp.Lines(x=head_x, y=head_y,
+                       scales=scales)
+    
+    
+    #movable points: arms first, left side first
+    scat = bqp.Scatter(scales = scales, enable_move = True, update_on_move = True, stroke_width = 7)
+    scat.x , scat.y = np.transpose([p[3], p[4], p[7], p[8], p[10], p[11], p[14], p[15]])
+    
+    left_arm = bqp.Lines(scales=scales)
+    left_arm.x, left_arm.y = [[p[2][0], scat.x[0], scat.x[1]],[p[2][1], scat.y[0], scat.y[1]]]
+    
+    right_arm = bqp.Lines(scales=scales)
+    right_arm.x, right_arm.y = [[p[6][0], scat.x[2], scat.x[3]],[p[6][1], scat.y[2], scat.y[3]]]
+    
+    left_leg = bqp.Lines(scales=scales)
+    left_leg.x, left_leg.y = [[p[9][0], scat.x[4], scat.x[5]],[p[9][1], scat.y[4], scat.y[5]]]
+    
+    right_leg = bqp.Lines(scales=scales)
+    right_leg.x, right_leg.y = [[p[13][0], scat.x[6], scat.x[7]],[p[13][1], scat.y[6], scat.y[7]]]
+    
     scat.observe(refresh, names=['x', 'y'])
-    return (bqp.Figure(marks=[scat, lines], padding_y = 0., min_height = 750, min_width = 750),1)
+    return bqp.Figure(marks=[scat, left_arm, right_arm, left_leg, right_leg, chest, head], 
+                      padding_y = 0., min_height = 750, min_width = 750)
