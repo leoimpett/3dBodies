@@ -2,6 +2,9 @@ import numpy as np
 import math
 import cv2 as cv
 
+import bqplot as bqp
+from ipywidgets import interact
+
 
 limbSeq  = [[2,3], [2,6], [3,4], [4,5], [6,7], [7,8], [2,9], [9,10], \
                [10,11], [2,12], [12,13], [13,14], [2,1], [1,15], [15,17], \
@@ -266,3 +269,17 @@ def resize_all_bodies(bodies, center_point, mean_limbs_lengths):
             n += 1
         u_bodies.append((scale_skeleton(p, scale, center_point), l, i))
     return u_bodies
+
+
+def interactive_skeleton(body):
+    """Plot an interactive body with which we can play. Only call this function on a complete body (for now)"""
+    def refresh(_):
+        lines.x, lines.y = [[0, scat.x[1], scat.x[0]],[0, scat.y[1], scat.y[0]]]
+    scales = {'x': bqp.LinearScale(min= 0, max= 1000),
+             'y' : bqp.LinearScale(min = 1000, max = 0)}
+    scat = bqp.Scatter(scales = scales, enable_move = True, update_on_move = True)
+    lines = bqp.Lines(scales=scales)
+    scat.x , scat.y = [[1000, 0],[1000, 0]]
+    lines.x, lines.y = [scat.x,scat.y]
+    scat.observe(refresh, names=['x', 'y'])
+    return (bqp.Figure(marks=[scat, lines], padding_y = 0., min_height = 750, min_width = 750),1)
