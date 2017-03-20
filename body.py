@@ -1,6 +1,9 @@
 import numpy as np
 import math
 import cv2 as cv
+import matplotlib
+from matplotlib import pyplot as plt
+import scipy.spatial
 
 import bqplot as bqp
 from ipywidgets import interact
@@ -13,6 +16,18 @@ limbSeq  = [[2,3], [2,6], [3,4], [4,5], [6,7], [7,8], [2,9], [9,10], \
 original_limbs = [[1,2],[1,6],[2,3],[3,4],[6,7],[7,8],[1,9],[9,10],[10,11],\
                    [1,13],[13,14],[14,15],[1,0],[0,16],[16,18],[0,17],[17,19]]
     
+
+    
+def base_angles():
+    return [180., 0., 180., 90., 0., 90., 115., 90., 90., 65., 90., 90., -90., -135., -170., -45., -10.]
+
+def base_ignored():
+    return [5, 12, 16, 17, 18, 19]
+
+def base_limbs():
+    return [[ 1,  2], [ 1,  6], [ 2,  3], [ 3,  4], [ 6,  7], [ 7 , 8], [ 1,  9], [ 9, 10], [10, 11], [ 1, 13], [13, 14],
+              [14, 15], [ 1,  0], [ 0, 16], [16, 18], [ 0, 17], [17, 19]]
+
 
 def limb_valid(limb):
     """Control that a single limb is valid"""
@@ -270,8 +285,65 @@ def resize_all_bodies(bodies, center_point, mean_limbs_lengths):
         u_bodies.append((scale_skeleton(p, scale, center_point), l, i))
     return u_bodies
 
+def bound(a):
+    """bounds an angle between -180 and +180"""
+    while a > 180:
+        a -= 360
+    while a <= -180:
+        a += 360
+    return a
 
-def interactive_skeleton(body):
+def member_relative_angles(body):
+    """get the relative angles of the 8 member limbs. Arms first, Left first.
+    The arms have relative angles to the clavicle, and the legs to the pelvis (= bassin in french)"""
+    angles = find_absolute_angles(body)
+    points = body[0]
+    limbs = body[1]
+    
+    rel_angles = np.zeros(8)+360
+    
+    #left arm 1
+    if limb_valid(limbs[2]):
+        rel_angles[0] = bound(angles[2]-angles[0])
+    #left arm 2
+    if limb_valid(limbs[3]):
+        rel_angles[1] = bound(angles[3]-angles[2])
+    #right arm 1
+    if limb_valid(limbs[4]):
+        rel_angles[2] = bound(angles[4]-angles[1])
+    #right arm 2
+    if limb_valid(limbs[5]):
+        rel_angles[3] = bound(angles[5]-angles[4])
+    
+    x0 = points[9][0]
+    y0 = points[9][1]
+    x1 = points[13][0]
+    y1 = points[13][1]
+    pelvis_angle = math.degrees(math.atan2(y1 - y0, x1 - x0))
+    
+    #left leg 1
+    if limb_valid(limbs[7]):
+        rel_angles[4] = bound(angles[7]-pelvis_angle)
+    #left leg 2
+    if limb_valid(limbs[8]):
+        rel_angles[5] = bound(angles[8]-angles[7])
+    #right leg 1
+    if limb_valid(limbs[10]):
+        rel_angles[6] = bound(angles[10]-pelvis_angle)
+    #right leg 2
+    if limb_valid(limbs[11]):
+        rel_angles[7] = bound(angles[11]-angles[10])
+            
+    return rel_angles
+
+def get_all_relative_angles(bodies):
+    """returns a list with all the relative angles of the list of bodies."""
+    relative_angles = list()
+    for b in bodies:
+        relative_angles.append(member_relative_angles(b))
+    return relative_angles
+
+def interactive_skeleton(body, angles, bodies):
     """Plot an interactive body with which we can play. Only call this function on a complete body (for now)"""
     def refresh(_):
         left_arm.x, left_arm.y = [[p[2][0], scat.x[0], scat.x[1]],[p[2][1], scat.y[0], scat.y[1]]]
@@ -284,7 +356,7 @@ def interactive_skeleton(body):
         for i in range(len(to_update_points)):
             body[0][to_update_points[i]] = [scat.x[i], scat.y[i]]
         
-        #body = (p, l, i)
+        #plot_nearest_neighbor(angles, body, bodies)
     
    
     p = body[0]
@@ -321,3 +393,20 @@ def interactive_skeleton(body):
     scat.observe(refresh, names=['x', 'y'])
     return bqp.Figure(marks=[scat, left_arm, right_arm, left_leg, right_leg, chest, head], 
                       padding_y = 0., min_height = 750, min_width = 750)
+
+
+def plot_skeleton(body):
+    """plot the ith skeleton of the database"""
+    img =  np.ones((1000, 1000, 3))
+    img =  points_to_skeleton(body, (0,0,0), img)
+    plt.imshow(img)
+    fig = matplotlib.pyplot.gcf()
+    fig.set_size_inches(10, 10)
+    
+def plot_nearest_neighbor(angles, body, bodies):
+    plot_skeleton(get_nearest_neighbor(angles, body, bodies))
+    
+def get_nearest_neighbor(angles, body, bodies):
+    tree = scipy.spatial.cKDTree(angles, leafsize=100)
+    distance = tree.query(member_relative_angles(body), k=1, distance_upper_bound=1000)
+    return bodies[distance[1]]
