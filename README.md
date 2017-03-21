@@ -6,6 +6,15 @@ read an image directly from a url:
 
 http://stackoverflow.com/questions/7391945/how-do-i-read-image-data-from-a-url-in-python 
 
+
+
+
+### For next time (written 21st march 17) : 
+- interactive searching produces a grid with original image, and skeleton, and some metadata (print the time-period). 
+- start to read a little about CLustering, especially: the K-means algorithm, and try (but don't implement yourself - use the library) T-SNE on the angles 
+http://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html 
+
+
 ### What I've done so far
 
 Week1: 23.02 - 02.03
