@@ -356,10 +356,23 @@ def interactive_skeleton(body, angles, bodies):
         for i in range(len(to_update_points)):
             body[0][to_update_points[i]] = [scat.x[i], scat.y[i]]
         
-        #plot_nearest_neighbor(angles, body, bodies)
-    
+        b = get_nearest_neighbor(angles, body, bodies)
+        p2 = b[0]
+        nchest.x, nchest.y = np.transpose([p2[1], p2[2], p2[9], p2[13], p2[6], p2[1], p2[0]])
+        
+        nhead.x = np.cos(np.linspace(0, 2*np.pi, 100))*60+p2[0][0]
+        nhead.y = np.sin(np.linspace(0, 2*np.pi, 100))*65+p2[0][1]
+        
+        nleft_arm.x, nleft_arm.y = [[p2[2][0], p2[3][0], p2[4][0]],[p2[2][1], p2[3][1], p2[4][1]]]
+        nright_arm.x, nright_arm.y = [[p2[6][0], p2[7][0], p2[8][0]],[p2[6][1], p2[7][1], p2[8][1]]]
+        nleft_leg.x, nleft_leg.y = [[p2[9][0], p2[10][0], p2[11][0]],[p2[9][1], p2[10][1], p2[11][1]]]
+        nright_leg.x, nright_leg.y = [[p2[13][0], p2[14][0], p2[15][0]],[p2[13][1], p2[14][1], p2[15][1]]]
+        
+        
+    nbody = get_nearest_neighbor(angles, body, bodies)
    
     p = body[0]
+    p2 = nbody[0]
     scales = {'x': bqp.LinearScale(min= 0, max= 1000),
              'y' : bqp.LinearScale(min = 1000, max = 0)}
     
@@ -367,11 +380,17 @@ def interactive_skeleton(body, angles, bodies):
     chest = bqp.Lines(scales=scales)
     chest.x, chest.y = np.transpose([p[1], p[2], p[9], p[13], p[6], p[1], p[0]])
     
+    nchest = bqp.Lines(scales=scales,  colors=['red'])
+    nchest.x, nchest.y = np.transpose([p2[1], p2[2], p2[9], p2[13], p2[6], p2[1], p2[0]])
+    
     #draw the head
     head_x = np.cos(np.linspace(0, 2*np.pi, 100))*60+p[0][0]
     head_y = np.sin(np.linspace(0, 2*np.pi, 100))*65+p[0][1]
-    head = bqp.Lines(x=head_x, y=head_y,
-                       scales=scales)
+    head = bqp.Lines(x=head_x, y=head_y, scales=scales)
+    
+    nhead_x = np.cos(np.linspace(0, 2*np.pi, 100))*60+p2[0][0]
+    nhead_y = np.sin(np.linspace(0, 2*np.pi, 100))*65+p2[0][1]
+    nhead = bqp.Lines(x=nhead_x, y=nhead_y, scales=scales,  colors=['red'])
     
     
     #movable points: arms first, left side first
@@ -381,17 +400,30 @@ def interactive_skeleton(body, angles, bodies):
     left_arm = bqp.Lines(scales=scales)
     left_arm.x, left_arm.y = [[p[2][0], scat.x[0], scat.x[1]],[p[2][1], scat.y[0], scat.y[1]]]
     
+    nleft_arm = bqp.Lines(scales=scales, colors=['red'])
+    nleft_arm.x, nleft_arm.y = [[p2[2][0], p2[3][0], p2[4][0]],[p2[2][1], p2[3][1], p2[4][1]]]
+    
     right_arm = bqp.Lines(scales=scales)
     right_arm.x, right_arm.y = [[p[6][0], scat.x[2], scat.x[3]],[p[6][1], scat.y[2], scat.y[3]]]
+    
+    nright_arm = bqp.Lines(scales=scales,  colors=['red'])
+    nright_arm.x, nright_arm.y = [[p2[6][0], p2[7][0], p2[8][0]],[p2[6][1], p2[7][1], p2[8][1]]]
     
     left_leg = bqp.Lines(scales=scales)
     left_leg.x, left_leg.y = [[p[9][0], scat.x[4], scat.x[5]],[p[9][1], scat.y[4], scat.y[5]]]
     
+    nleft_leg = bqp.Lines(scales=scales,  colors=['red'])
+    nleft_leg.x, nleft_leg.y = [[p2[9][0], p2[10][0], p2[11][0]],[p2[9][1], p2[10][1], p2[11][1]]]
+    
     right_leg = bqp.Lines(scales=scales)
     right_leg.x, right_leg.y = [[p[13][0], scat.x[6], scat.x[7]],[p[13][1], scat.y[6], scat.y[7]]]
     
+    nright_leg = bqp.Lines(scales=scales,  colors=['red'])
+    nright_leg.x, nright_leg.y = [[p2[13][0], p2[14][0], p2[15][0]],[p2[13][1], p2[14][1], p2[15][1]]]
+    
     scat.observe(refresh, names=['x', 'y'])
-    return bqp.Figure(marks=[scat, left_arm, right_arm, left_leg, right_leg, chest, head], 
+    return bqp.Figure(marks=[scat, left_arm, right_arm, left_leg, right_leg, chest, head, 
+                             nleft_arm, nright_arm, nleft_leg, nright_leg, nchest, nhead], 
                       padding_y = 0., min_height = 750, min_width = 750)
 
 
