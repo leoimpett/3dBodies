@@ -14,6 +14,10 @@ http://stackoverflow.com/questions/7391945/how-do-i-read-image-data-from-a-url-i
 - start to read a little about CLustering, especially: the K-means algorithm, and try (but don't implement yourself - use the library) T-SNE on the angles 
 http://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html 
 
+NOT FOR NEXT TIME - but to keep in mind:
+- be able to search with positive and negative examples (online training an SVM). 
+- once a cluster is identified manually, to be able to visualise metadata (e.g. relationship through time, places, and keywords in the title). 
+
 
 ### What I've done so far
 
