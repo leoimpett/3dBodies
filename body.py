@@ -19,7 +19,7 @@ original_limbs = [[1,2],[1,6],[2,3],[3,4],[6,7],[7,8],[1,9],[9,10],[10,11],\
 
     
 def base_angles():
-    return [180., 0., 180., 90., 0., 90., 115., 90., 90., 65., 90., 90., -90., -135., -170., -45., -10.]
+    return [180., 0., 180., 90., 0., 90., 105., 90., 90., 75., 90., 90., -90., -135., -170., -45., -10.]
 
 def base_ignored():
     return [5, 12, 16, 17, 18, 19]
@@ -368,14 +368,19 @@ def interactive_skeleton(body, angles, bodies):
         nleft_leg.x, nleft_leg.y = [[p2[9][0], p2[10][0], p2[11][0]],[p2[9][1], p2[10][1], p2[11][1]]]
         nright_leg.x, nright_leg.y = [[p2[13][0], p2[14][0], p2[15][0]],[p2[13][1], p2[14][1], p2[15][1]]]
         
-        
-    nbody = get_nearest_neighbor(angles, body, bodies)
-   
-    p = body[0]
-    p2 = nbody[0]
+    
     scales = {'x': bqp.LinearScale(min= 0, max= 1000),
              'y' : bqp.LinearScale(min = 1000, max = 0)}
     
+    #initialization of the nearest neighbor of the interactive body.
+    nbody = get_nearest_neighbor(angles, body, bodies)
+    
+    #points of the interactive and neighbor bodies
+    p = body[0]
+    p2 = nbody[0]
+    
+    
+    #Constructions of the two bodies: the interactive one and its nearest neighbor. body part beginnig with n... are part of the neighbor.
     #draw the chest
     chest = bqp.Lines(scales=scales)
     chest.x, chest.y = np.transpose([p[1], p[2], p[9], p[13], p[6], p[1], p[0]])
@@ -428,7 +433,7 @@ def interactive_skeleton(body, angles, bodies):
 
 
 def plot_skeleton(body):
-    """plot the ith skeleton of the database"""
+    """plot a body in a 1000X1000 image"""
     img =  np.ones((1000, 1000, 3))
     img =  points_to_skeleton(body, (0,0,0), img)
     plt.imshow(img)
@@ -436,9 +441,11 @@ def plot_skeleton(body):
     fig.set_size_inches(10, 10)
     
 def plot_nearest_neighbor(angles, body, bodies):
+    """plot the bodies collection's nearest neighbor of a body"""
     plot_skeleton(get_nearest_neighbor(angles, body, bodies))
     
 def get_nearest_neighbor(angles, body, bodies):
+    """Get the bodies collection's nearest neighbor of a body"""
     tree = scipy.spatial.cKDTree(angles, leafsize=100)
     distance = tree.query(member_relative_angles(body), k=1, distance_upper_bound=1000)
     return bodies[distance[1]]
