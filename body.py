@@ -113,7 +113,7 @@ def find_ignored_points(pts):
     return ignored
 
 
-def get_bodies_from_picture(painting):
+def get_bodies_from_picture(painting, p_id):
     """get all the bodies from a painting and return them as an array of arrays of points and corresponding limbs
     which represent each body.
     
@@ -153,7 +153,7 @@ def get_bodies_from_picture(painting):
                     body_points[body_limbs[i][1]] = points[int(b[i][1])]
                     seen_points.append(b[i][1])
         
-        bodies.append((body_points, body_limbs, find_ignored_points(body_points)))
+        bodies.append((body_points, body_limbs, find_ignored_points(body_points), p_id))
     return bodies
                 
         
@@ -164,7 +164,7 @@ def construct_body_list(n, paintings):
     bodies = list()
     i = 1
     while i <= n: 
-        bodies = bodies + get_bodies_from_picture(paintings[i])
+        bodies = bodies + get_bodies_from_picture(paintings[i], i)
         i += 1
     return bodies
 
@@ -245,7 +245,7 @@ def angles_to_body(agl, limbs, limbs_length, center_point, ignored):
         pts[int(limbs[i][1])] = p2
         
         
-    return (pts, limbs, ignored)
+    return (pts, limbs, ignored, -1)
 
 
 def mean_error_between_bodies(body1, body2):
@@ -274,15 +274,13 @@ def compute_scale(body, mll):
 def resize_all_bodies(bodies, center_point, mean_limbs_lengths):
     """translate and scale all the bodies"""
     u_bodies = list()
-    n = 0
     for b in bodies:
         p = b[0]
         l = b[1]
         i = b[2]
+        b_id = b[3]
         scale = compute_scale(b, mean_limbs_lengths)
-        if scale == 1:
-            n += 1
-        u_bodies.append((scale_skeleton(p, scale, center_point), l, i))
+        u_bodies.append((scale_skeleton(p, scale, center_point), l, i, b_id))
     return u_bodies
 
 def bound(a):
@@ -356,7 +354,7 @@ def interactive_skeleton(body, angles, bodies):
         for i in range(len(to_update_points)):
             body[0][to_update_points[i]] = [scat.x[i], scat.y[i]]
         
-        b = get_nearest_neighbor(angles, body, bodies)
+        b = get_nearest_neighbor(angles, body, bodies)[0]
         p2 = b[0]
         nchest.x, nchest.y = np.transpose([p2[1], p2[2], p2[9], p2[13], p2[6], p2[1], p2[0]])
         
@@ -373,7 +371,7 @@ def interactive_skeleton(body, angles, bodies):
              'y' : bqp.LinearScale(min = 1000, max = 0)}
     
     #initialization of the nearest neighbor of the interactive body.
-    nbody = get_nearest_neighbor(angles, body, bodies)
+    nbody = get_nearest_neighbor(angles, body, bodies)[0]
     
     #points of the interactive and neighbor bodies
     p = body[0]
@@ -442,10 +440,15 @@ def plot_skeleton(body):
     
 def plot_nearest_neighbor(angles, body, bodies):
     """plot the bodies collection's nearest neighbor of a body"""
-    plot_skeleton(get_nearest_neighbor(angles, body, bodies))
+    plot_skeleton(get_nearest_neighbor(angles, body, bodies)[0])
     
 def get_nearest_neighbor(angles, body, bodies):
     """Get the bodies collection's nearest neighbor of a body"""
     tree = scipy.spatial.cKDTree(angles, leafsize=100)
     distance = tree.query(member_relative_angles(body), k=1, distance_upper_bound=1000)
-    return bodies[distance[1]]
+    return (bodies[distance[1]], distance[1])
+
+def get_n_nearest_neighbor(angles, body, n):
+    tree = scipy.spatial.cKDTree(angles, leafsize=100)
+    distance = tree.query(member_relative_angles(body), k=n, distance_upper_bound=1000)
+    return distance[1]
