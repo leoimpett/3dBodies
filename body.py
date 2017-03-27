@@ -4,6 +4,7 @@ import cv2 as cv
 import matplotlib
 from matplotlib import pyplot as plt
 import scipy.spatial
+from sklearn.neighbors import NearestNeighbors
 
 import bqplot as bqp
 from ipywidgets import interact
@@ -19,7 +20,7 @@ original_limbs = [[1,2],[1,6],[2,3],[3,4],[6,7],[7,8],[1,9],[9,10],[10,11],\
 
     
 def base_angles():
-    return [180., 0., 180., 90., 0., 90., 105., 90., 90., 75., 90., 90., -90., -135., -170., -45., -10.]
+    return [180., 0., 180., 180., 0., 0., 105., 90., 90., 75., 90., 90., -90., -135., -170., -45., -10.]
 
 def base_ignored():
     return [5, 12, 16, 17, 18, 19]
@@ -299,7 +300,7 @@ def member_relative_angles(body):
     limbs = body[1]
     
     #rel_angles = ['?','?','?','?','?','?','?','?']
-    rel_angles = np.zeros((8))+360
+    rel_angles = np.zeros(8)+360
     
     #left arm 1
     if limb_valid(limbs[2]):
@@ -442,10 +443,17 @@ def angles_distance(a1, a2):
             valid += 1
             s += bound(a2[i]-a1[i]) * bound(a2[i]-a1[i])
     #take the mean distance for invalid data
-    if valid == 0:
-        return -1
+    #We want to have at least 4 valid angles
+    if valid < 4:
+        return 510.0 #the max possible error is around 509
     s = (s/valid) * len(a1)
     return math.sqrt(s)
+
+def get_all_distances(a1, sample):
+    distances = list()
+    for a2 in sample:
+        distances.append(bd.angles_distance(a1,a2))
+    return distances
 
 
 def plot_skeleton(body):
