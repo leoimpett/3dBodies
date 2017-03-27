@@ -298,7 +298,8 @@ def member_relative_angles(body):
     points = body[0]
     limbs = body[1]
     
-    rel_angles = np.zeros(8)+360
+    #rel_angles = ['?','?','?','?','?','?','?','?']
+    rel_angles = np.zeros((8))+360
     
     #left arm 1
     if limb_valid(limbs[2]):
@@ -428,6 +429,23 @@ def interactive_skeleton(body, angles, bodies):
     return bqp.Figure(marks=[scat, left_arm, right_arm, left_leg, right_leg, chest, head, 
                              nleft_arm, nright_arm, nleft_leg, nright_leg, nchest, nhead], 
                       padding_y = 0., min_height = 750, min_width = 750)
+
+def angles_distance(a1, a2):
+    """compute the distance between two arrays of relative angles. a1 has only valid values but a2
+    may have invalid values (360)"""
+    if len(a1) != len(a2):
+        return -1
+    valid = 0
+    s = 0.0
+    for i in range(len(a1)):
+        if not a2[i] == 360:
+            valid += 1
+            s += bound(a2[i]-a1[i]) * bound(a2[i]-a1[i])
+    #take the mean distance for invalid data
+    if valid == 0:
+        return -1
+    s = (s/valid) * len(a1)
+    return math.sqrt(s)
 
 
 def plot_skeleton(body):
