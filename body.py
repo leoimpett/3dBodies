@@ -452,7 +452,7 @@ def angles_distance(a1, a2):
 def get_all_distances(a1, sample):
     distances = list()
     for a2 in sample:
-        distances.append(bd.angles_distance(a1,a2))
+        distances.append([angles_distance(a1,a2)])
     return distances
 
 
