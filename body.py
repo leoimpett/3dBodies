@@ -5,6 +5,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 import scipy.spatial
 from sklearn.neighbors import NearestNeighbors
+import sklearn
 
 import bqplot as bqp
 from ipywidgets import interact
@@ -436,24 +437,14 @@ def angles_distance(a1, a2):
     may have invalid values (360)"""
     if len(a1) != len(a2):
         return -1
-    valid = 0
+    invalid = 0
     s = 0.0
     for i in range(len(a1)):
-        if not a2[i] == 360:
-            valid += 1
+        if a2[i] == 360:
+            invalid += 1
+        else:
             s += bound(a2[i]-a1[i]) * bound(a2[i]-a1[i])
-    #take the mean distance for invalid data
-    #We want to have at least 4 valid angles
-    if valid < 4:
-        return 510.0 #the max possible error is around 509
-    s = (s/valid) * len(a1)
-    return math.sqrt(s)
-
-def get_all_distances(a1, sample):
-    distances = list()
-    for a2 in sample:
-        distances.append([angles_distance(a1,a2)])
-    return distances
+    return math.sqrt(s) + invalid * math.sqrt(180)
 
 
 def plot_skeleton(body):
@@ -474,7 +465,11 @@ def get_nearest_neighbor(angles, body, bodies):
     distance = tree.query(member_relative_angles(body), k=1, distance_upper_bound=1000)
     return (bodies[distance[1]], distance[1])
 
-def get_n_nearest_neighbor(angles, body, n):
-    tree = scipy.spatial.cKDTree(angles, leafsize=100)
-    distance = tree.query(member_relative_angles(body), k=n, distance_upper_bound=1000)
-    return distance[1]
+def get_n_nearest_neighbor(angles, body, n=100, dist=50, metric=angles_distance):
+    NN = sklearn.neighbors.NearestNeighbors(n_neighbors=n, radius=dist, leaf_size=30,
+                                             metric=metric, algorithm='auto')
+    NN.fit(angles)
+    return NN.kneighbors([member_relative_angles(body)])
+
+
+
