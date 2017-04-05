@@ -472,4 +472,11 @@ def get_n_nearest_neighbor(angles, body, n=100, dist=50, metric=angles_distance)
     return NN.kneighbors([member_relative_angles(body)])
 
 
-
+def get_distant_neighbors(angles, body, dist=50):
+    """get all the bodies id of bodies that are nearer than dist from a certain body"""
+    origin_angles = member_relative_angles(body)
+    ids = list()
+    for i in range(len(angles)):
+        if angles_distance(origin_angles, angles[i]) < dist:
+            ids.append(i)
+    return ids
