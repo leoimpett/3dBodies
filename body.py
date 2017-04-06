@@ -7,6 +7,11 @@ import scipy.spatial
 from sklearn.neighbors import NearestNeighbors
 import sklearn
 
+from collections import Counter
+from collections import OrderedDict
+import pandas
+import operator
+
 import bqplot as bqp
 from ipywidgets import interact
 
@@ -480,3 +485,9 @@ def get_distant_neighbors(angles, body, dist=50):
         if angles_distance(origin_angles, angles[i]) < dist:
             ids.append(i)
     return ids
+
+
+def pose_rarity(body, angles, dist=50):
+    """return the rarity ratio of a certain pose in the collection"""
+    n = len(get_distant_neighbors(angles, body, dist=dist))
+    return float(n)/len(angles)
