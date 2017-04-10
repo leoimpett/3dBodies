@@ -1,6 +1,29 @@
 # 3dBodies
 BW's semester project 2017
 
+
+
+### Meeting 6 April
+
+- Previous work: 
+
+1. PRINTART project:
+http://printart.isr.ist.utl.pt/paper_eccv12_final.pdf (read if you like)
+http://printart.isr.ist.utl.pt/my_article.pdf (most important)
+(doing something slightly different, and not very well)
+
+2. Activity Recognition (https://www.cs.utexas.edu/~chaoyeh/web_action_data/dataset_list.html) in 'still' images!! And motivator for pose estimation. 
+
+3. All backed up by Johansson's 'Light Spots Model' , which is also important in psychology, e.g. : http://journals.sagepub.com/doi/pdf/10.1068/p5096
+
+
+- evaluation (precision @ N, user studies)
+
+
+
+- how we got the data: https://github.com/ZheC/Realtime_Multi-Person_Pose_Estimation 
+
+
 ### Meeting 28 March 
 - This tool shows us that there's a big correlation between *some* poses and the respective metadata (title, year, place, ...)
 - midway through the project, we can think of identifying patterns automatically
