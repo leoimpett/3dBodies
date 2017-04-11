@@ -28,6 +28,7 @@ limbSeq  = [[2,3], [2,6], [3,4], [4,5], [6,7], [7,8], [2,9], [9,10], \
     
 original_limbs = [[1,2],[1,6],[2,3],[3,4],[6,7],[7,8],[1,9],[9,10],[10,11],\
                    [1,13],[13,14],[14,15],[1,0],[0,16],[16,18],[0,17],[17,19]]
+
     
 
     
@@ -40,6 +41,8 @@ def base_ignored():
 def base_limbs():
     return [[ 1,  2], [ 1,  6], [ 2,  3], [ 3,  4], [ 6,  7], [ 7 , 8], [ 1,  9], [ 9, 10], [10, 11], [ 1, 13], [13, 14],
               [14, 15], [ 1,  0], [ 0, 16], [16, 18], [ 0, 17], [17, 19]]
+
+
 
 
 def limb_valid(limb):
@@ -443,7 +446,47 @@ def interactive_skeleton(body, angles, bodies):
                              nleft_arm, nright_arm, nleft_leg, nright_leg, nchest, nhead], 
                       padding_y = 0., min_height = 750, min_width = 750)
 
-def angles_distance(a1, a2):
+
+def mean_angle(angles):
+    """compute the mean angle of an angle list."""
+    s = 0.0
+    c = 0.0
+    n = 0
+    for a in angles:
+        s += math.sin(math.radians(a))
+        c += math.cos(math.radians(a))
+        n += 1
+    return math.degrees(math.atan2(s,c))
+
+
+def compute_mean_relative_angles(relative_angles):
+    """compute the mean relative angle of each limb"""
+    angles = np.transpose(relative_angles)
+    mean = np.zeros(len(angles))
+    for i in range(len(angles)):
+        mean[i] = mean_angle(angles[i])
+    return mean
+
+
+def compute_std_deviation(relative_angles):
+    """compute the standard deviation of an array of relative angles"""
+    
+    means = compute_mean_relative_angles(relative_angles)
+    angles = np.transpose(relative_angles)
+    std = np.zeros(len(angles))
+    for i in range(len(angles)):
+        m = means[i]
+        n = 0
+        s = 0.0
+        for a in angles[i]:
+            if a != 360:
+                s += abs(a-m)**2
+                n+=1
+        std[i] = math.sqrt(s/n)
+    return std
+
+
+def angles_distance(a1, a2, deviation):
     """compute the distance between two arrays of relative angles. a1 has only valid values but a2
     may have invalid values (360)"""
     if len(a1) != len(a2):
@@ -452,10 +495,10 @@ def angles_distance(a1, a2):
     s = 0.0
     for i in range(len(a1)):
         if a2[i] == 360:
-            invalid += 1
+            s += deviation[i]**2
         else:
             s += bound(a2[i]-a1[i]) * bound(a2[i]-a1[i])
-    return math.sqrt(s) + invalid * math.sqrt(180)
+    return math.sqrt(s)
 
 
 def plot_skeleton(body):
@@ -476,19 +519,35 @@ def get_nearest_neighbor(angles, body, bodies):
     distance = tree.query(member_relative_angles(body), k=1, distance_upper_bound=1000)
     return (bodies[distance[1]], distance[1])
 
-def get_n_nearest_neighbor(angles, body, n=100, dist=50, metric=angles_distance):
+def get_n_nearest_neighbor(angles, body, deviation, n=100, dist=50):
+    
+    def angles_dist(a1, a2):
+        """compute the distance between two arrays of relative angles. a1 has only valid values but a2
+        may have invalid values (360)"""
+        if len(a1) != len(a2):
+            return -1
+        invalid = 0
+        s = 0.0
+        for i in range(len(a1)):
+            if a2[i] == 360:
+                s += deviation[i]**2
+            else:
+                s += bound(a2[i]-a1[i]) * bound(a2[i]-a1[i])
+        return math.sqrt(s)
+    
+    
     NN = sklearn.neighbors.NearestNeighbors(n_neighbors=n, radius=dist, leaf_size=30,
-                                             metric=metric, algorithm='auto')
+                                             metric=angles_dist, algorithm='auto')
     NN.fit(angles)
     return NN.kneighbors([member_relative_angles(body)])
 
 
-def get_distant_neighbors(angles, body, dist=50):
+def get_distant_neighbors(angles, body, deviation, dist=50):
     """get all the bodies id of bodies that are nearer than dist from a certain body"""
     origin_angles = member_relative_angles(body)
     ids = list()
     for i in range(len(angles)):
-        if angles_distance(origin_angles, angles[i]) < dist:
+        if angles_distance(origin_angles, angles[i], deviation) < dist:
             ids.append(i)
     return ids
 
@@ -499,9 +558,9 @@ def pose_rarity(body, angles, dist=50):
     return float(n)/len(angles)
 
 
-def plot_n_nearest_neighbors(angles, body, bodies, paintings, n=5):
+def plot_n_nearest_neighbors(angles, body, bodies, paintings, deviation, n=5):
     """plot the n nearest neighbor's paintings with skeleton drawn on them with some info on the painting"""
-    distances, b = get_n_nearest_neighbor(angles, body, n)
+    distances, b = get_n_nearest_neighbor(angles, body, deviation, n)
     bd_i = b[0]
     f, ax = plt.subplots(n,2, figsize=(24,n * 15))
     for i in range(n):
