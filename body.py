@@ -3,6 +3,8 @@ import math
 import cv2 as cv
 import matplotlib
 from matplotlib import pyplot as plt
+import scipy
+from scipy import stats
 import scipy.spatial
 from sklearn.neighbors import NearestNeighbors
 import sklearn
@@ -11,6 +13,10 @@ from collections import Counter
 from collections import OrderedDict
 import pandas
 import operator
+
+from PIL import Image
+from StringIO import StringIO
+import requests
 
 import bqplot as bqp
 from ipywidgets import interact
@@ -491,3 +497,75 @@ def pose_rarity(body, angles, dist=50):
     """return the rarity ratio of a certain pose in the collection"""
     n = len(get_distant_neighbors(angles, body, dist=dist))
     return float(n)/len(angles)
+
+
+def plot_n_nearest_neighbors(angles, body, bodies, paintings, n=5):
+    """plot the n nearest neighbor's paintings with skeleton drawn on them with some info on the painting"""
+    distances, b = get_n_nearest_neighbor(angles, body, n)
+    bd_i = b[0]
+    f, ax = plt.subplots(n,2, figsize=(24,n * 15))
+    for i in range(n):
+        p_id = bodies[bd_i[i]][3]
+        response = requests.get(paintings[p_id][1])
+        img = np.array(Image.open(StringIO(response.content)))
+        img = points_to_skeleton(bodies[bd_i[i]], (255, 0, 0), img)
+        ax[i, 0].imshow(img)
+        ax[i, 1].text(0.2,0.5,'Time period: ' + str(paintings[p_id][15]) + '(' +  str(paintings[p_id][8]) + ')', fontsize = 20)
+        ax[i, 1].text(0.2,0.3,'Type: ' + str(paintings[p_id][13]), fontsize = 20)
+        ax[i, 1].text(0.2,0.7,'School: ' + str(paintings[p_id][14]), fontsize = 20)
+        ax[i, 1].text(0.2,0.9,'Form: ' + str(paintings[p_id][12]), fontsize = 20)
+        ax[i, 0].axis('off')
+        ax[i, 1].axis('off')
+    
+    plt.show()
+    f.set_size_inches(10, 10)
+    
+    
+def get_paintings_from_bodies(bodies_id, bodies, paintings):
+    """retrieve the paintings which contains the sublist of bodies"""
+    p = list()
+    for b in bodies_id:
+        p.append(paintings[bodies[b][3]])
+    return p
+
+def histograms(paintings, subpaintings, Form=False, Type=False, School=False, Timeline=False):
+    """plot an histogram of the paintings' form, type, school and timeline, specify explicitely which you want,
+    default values are False
+    returns the p-values of each graph"""
+    zipped = zip(*paintings)
+    subzipped = zip(*subpaintings)
+    
+    p_values = list()
+    
+    i = list()
+    if Form:
+        i.append(12)
+    if Type:
+        i.append(13)
+    if School:
+        i.append(14)
+    if Timeline:
+        i.append(15)
+    
+    for k in i:
+        f = Counter(zipped[k])
+        sf = Counter(subzipped[k])
+        for key in f.keys():
+            f[key] /= float(len(paintings))
+            sf[key] /= float(len(subpaintings))
+            
+        
+        f = OrderedDict(sorted(f.items(), key=lambda t: t[0]))
+        sf = OrderedDict(sorted(sf.items(), key=lambda t: t[0]))
+        
+        v1 = f.values()
+        v2 = sf.values()
+        
+        
+        p_values.append(stats.ks_2samp(v1, v2)[1])
+            
+        df = pandas.DataFrame.from_dict(f, orient='index')
+        sdf = pandas.DataFrame.from_dict(sf, orient='index')
+        ax = df.plot(kind='bar', legend=False, colormap='ocean', position=0.1)
+        sdf.plot(kind='bar', ax=ax, legend=False, position = 0.9)
+    return p_values
