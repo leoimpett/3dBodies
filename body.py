@@ -308,14 +308,14 @@ def bound(a):
     return a
 
 def member_relative_angles(body):
-    """get the relative angles of the 8 member limbs. Arms first, Left first.
+    """get the relative angles of the 9 member limbs. Arms first, Left first.
     The arms have relative angles to the clavicle, and the legs to the pelvis (= bassin in french)"""
     angles = find_absolute_angles(body)
     points = body[0]
     limbs = body[1]
     
     #rel_angles = ['?','?','?','?','?','?','?','?']
-    rel_angles = np.zeros(8)+360
+    rel_angles = np.zeros(9)+360
     
     #left arm 1
     if limb_valid(limbs[2]):
@@ -348,6 +348,15 @@ def member_relative_angles(body):
     #right leg 2
     if limb_valid(limbs[11]):
         rel_angles[7] = bound(angles[11]-angles[10])
+    
+    x2 = points[2][0]
+    y2 = points[2][1]
+    x3 = points[6][0]
+    y3 = points[6][1]
+    shoulder_angle = math.degrees(math.atan2(y3 - y2, x3 - x2))
+    #neck
+    if limb_valid(limbs[12]):
+        rel_angles[8] = bound(angles[12]-shoulder_angle)
             
     return rel_angles
 
@@ -365,9 +374,12 @@ def interactive_skeleton(body, angles, bodies):
         right_arm.x, right_arm.y = [[p[6][0], scat.x[2], scat.x[3]],[p[6][1], scat.y[2], scat.y[3]]]
         left_leg.x, left_leg.y = [[p[9][0], scat.x[4], scat.x[5]],[p[9][1], scat.y[4], scat.y[5]]]
         right_leg.x, right_leg.y = [[p[13][0], scat.x[6], scat.x[7]],[p[13][1], scat.y[6], scat.y[7]]]
+        neck.x, neck.y = [[p[1][0], scat.x[8]],[p[1][1], scat.y[8]]]
+        head.x = np.cos(np.linspace(0, 2*np.pi, 100))*60+scat.x[8]
+        head.y = np.sin(np.linspace(0, 2*np.pi, 100))*65+scat.y[8]
         
         #update body
-        to_update_points = [3,4,7,8,10,11,14,15]
+        to_update_points = [3,4,7,8,10,11,14,15,0]
         for i in range(len(to_update_points)):
             body[0][to_update_points[i]] = [scat.x[i], scat.y[i]]
         
@@ -382,6 +394,8 @@ def interactive_skeleton(body, angles, bodies):
         nright_arm.x, nright_arm.y = [[p2[6][0], p2[7][0], p2[8][0]],[p2[6][1], p2[7][1], p2[8][1]]]
         nleft_leg.x, nleft_leg.y = [[p2[9][0], p2[10][0], p2[11][0]],[p2[9][1], p2[10][1], p2[11][1]]]
         nright_leg.x, nright_leg.y = [[p2[13][0], p2[14][0], p2[15][0]],[p2[13][1], p2[14][1], p2[15][1]]]
+        
+        
         
     
     scales = {'x': bqp.LinearScale(min= 0, max= 1000),
@@ -398,15 +412,16 @@ def interactive_skeleton(body, angles, bodies):
     #Constructions of the two bodies: the interactive one and its nearest neighbor. body part beginnig with n... are part of the neighbor.
     #draw the chest
     chest = bqp.Lines(scales=scales)
-    chest.x, chest.y = np.transpose([p[1], p[2], p[9], p[13], p[6], p[1], p[0]])
+    chest.x, chest.y = np.transpose([p[1], p[2], p[9], p[13], p[6], p[1]])
     
     nchest = bqp.Lines(scales=scales,  colors=['red'])
     nchest.x, nchest.y = np.transpose([p2[1], p2[2], p2[9], p2[13], p2[6], p2[1], p2[0]])
     
     #draw the head
-    head_x = np.cos(np.linspace(0, 2*np.pi, 100))*60+p[0][0]
-    head_y = np.sin(np.linspace(0, 2*np.pi, 100))*65+p[0][1]
-    head = bqp.Lines(x=head_x, y=head_y, scales=scales)
+    head = bqp.Lines(scales=scales)
+    head.x = np.cos(np.linspace(0, 2*np.pi, 100))*60+p[0][0]
+    head.y = np.sin(np.linspace(0, 2*np.pi, 100))*65+p[0][1]
+    
     
     nhead_x = np.cos(np.linspace(0, 2*np.pi, 100))*60+p2[0][0]
     nhead_y = np.sin(np.linspace(0, 2*np.pi, 100))*65+p2[0][1]
@@ -415,7 +430,7 @@ def interactive_skeleton(body, angles, bodies):
     
     #movable points: arms first, left side first
     scat = bqp.Scatter(scales = scales, enable_move = True, update_on_move = True, stroke_width = 7)
-    scat.x , scat.y = np.transpose([p[3], p[4], p[7], p[8], p[10], p[11], p[14], p[15]])
+    scat.x , scat.y = np.transpose([p[3], p[4], p[7], p[8], p[10], p[11], p[14], p[15], p[0]])
     
     left_arm = bqp.Lines(scales=scales)
     left_arm.x, left_arm.y = [[p[2][0], scat.x[0], scat.x[1]],[p[2][1], scat.y[0], scat.y[1]]]
@@ -441,9 +456,12 @@ def interactive_skeleton(body, angles, bodies):
     nright_leg = bqp.Lines(scales=scales,  colors=['red'])
     nright_leg.x, nright_leg.y = [[p2[13][0], p2[14][0], p2[15][0]],[p2[13][1], p2[14][1], p2[15][1]]]
     
+    neck =  bqp.Lines(scales=scales)
+    neck.x, neck.y = [[p[1][0], scat.x[8]],[p[1][1], scat.y[8]]]
+    
     scat.observe(refresh, names=['x', 'y'])
     return bqp.Figure(marks=[scat, left_arm, right_arm, left_leg, right_leg, chest, head, 
-                             nleft_arm, nright_arm, nleft_leg, nright_leg, nchest, nhead], 
+                             nleft_arm, nright_arm, nleft_leg, nright_leg, nchest, nhead, neck], 
                       padding_y = 0., min_height = 750, min_width = 750)
 
 
@@ -524,16 +542,7 @@ def get_n_nearest_neighbor(angles, body, deviation, n=100, dist=50):
     def angles_dist(a1, a2):
         """compute the distance between two arrays of relative angles. a1 has only valid values but a2
         may have invalid values (360)"""
-        if len(a1) != len(a2):
-            return -1
-        invalid = 0
-        s = 0.0
-        for i in range(len(a1)):
-            if a2[i] == 360:
-                s += deviation[i]**2
-            else:
-                s += bound(a2[i]-a1[i]) * bound(a2[i]-a1[i])
-        return math.sqrt(s)
+        return angles_distance(a1,a2,deviation)
     
     
     NN = sklearn.neighbors.NearestNeighbors(n_neighbors=n, radius=dist, leaf_size=30,
