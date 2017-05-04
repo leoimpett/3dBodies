@@ -2,6 +2,28 @@
 BW's semester project 2017
 
 
+### Meeting 4 May
+
+Updates 
+- Possibility to select different limbs
+- Search by neck
+
+
+To do (this week)
+- Implement deselection in angles
+- Search by global rotation
+- check p-values - check they're appropriate (right hypothesis - check right test for 'A subset of B')
+- check for random datapoints, with N (>20) nearest neighbors, see what the p-values look like. 
+- multiple comparison problem (multiple hypothesis testing) 
+- make a list of random hypotheses: skeleton, covariate (i.e. which dimension of metadata), p-value: then sort by p-value. 
+
+
+For the rest of the semester
+- Move from supervised (search) to unsupervised (clustering). 
+- generate automatic hypotheses
+- evaluate search system with art-historian
+
+
 
 ### Meeting 6 April
 
