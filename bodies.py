@@ -367,23 +367,62 @@ def get_all_relative_angles(bodies):
         relative_angles.append(member_relative_angles(b))
     return relative_angles
 
-def interactive_skeleton(body, angles, bodies, r_arm = True, l_arm = True, r_leg = True, l_leg = True):
+def interactive_body(body, angles, bodies, r_arm = True, l_arm = True, r_leg = True, l_leg = True, neck_p = True):
     """Plot an interactive body with which we can play. Only call this function on a complete body (for now)"""
     def refresh(_):
-        left_arm.x, left_arm.y = [[p[2][0], scat.x[0], scat.x[1]],[p[2][1], scat.y[0], scat.y[1]]]
-        right_arm.x, right_arm.y = [[p[6][0], scat.x[2], scat.x[3]],[p[6][1], scat.y[2], scat.y[3]]]
-        left_leg.x, left_leg.y = [[p[9][0], scat.x[4], scat.x[5]],[p[9][1], scat.y[4], scat.y[5]]]
-        right_leg.x, right_leg.y = [[p[13][0], scat.x[6], scat.x[7]],[p[13][1], scat.y[6], scat.y[7]]]
-        neck.x, neck.y = [[p[1][0], scat.x[8]],[p[1][1], scat.y[8]]]
-        head.x = np.cos(np.linspace(0, 2*np.pi, 100))*60+scat.x[8]
-        head.y = np.sin(np.linspace(0, 2*np.pi, 100))*65+scat.y[8]
+        i = 0
+        to_update = []
+        if l_arm:
+            left_arm.x, left_arm.y = [[p[2][0], scat.x[i], scat.x[i+1]],[p[2][1], scat.y[i], scat.y[i+1]]]
+            to_update.append(3)
+            to_update.append(4)
+            i+=2
+        if r_arm:
+            right_arm.x, right_arm.y = [[p[6][0], scat.x[i], scat.x[i+1]],[p[6][1], scat.y[i], scat.y[i+1]]]
+            to_update.append(7)
+            to_update.append(8)
+            i+=2
+        if l_leg:
+            left_leg.x, left_leg.y = [[p[9][0], scat.x[i], scat.x[i+1]],[p[9][1], scat.y[i], scat.y[i+1]]]
+            to_update.append(10)
+            to_update.append(11)
+            i+=2
+        if r_leg:
+            right_leg.x, right_leg.y = [[p[13][0], scat.x[i], scat.x[i+1]],[p[13][1], scat.y[i], scat.y[i+1]]]
+            to_update.append(14)
+            to_update.append(15)
+            i+=2
+        if neck_p:
+            to_update.append(0)
+            neck.x, neck.y = [[p[1][0], scat.x[i]],[p[1][1], scat.y[i]]]
+        
+        head.x = np.cos(np.linspace(0, 2*np.pi, 100))*60+neck.x[1]
+        head.y = np.sin(np.linspace(0, 2*np.pi, 100))*65+neck.y[1]
         
         #update body
-        to_update_points = [3,4,7,8,10,11,14,15,0]
-        for i in range(len(to_update_points)):
-            body[0][to_update_points[i]] = [scat.x[i], scat.y[i]]
+        for i in range(len(to_update)):
+            body[0][to_update[i]] = [scat.x[i], scat.y[i]]
         
-        b = get_nearest_neighbor(angles, body, bodies)[0]
+        body_angles = []
+        b_angles = member_relative_angles(body)
+        
+        if l_arm:
+            body_angles.append(b_angles[0])
+            body_angles.append(b_angles[1])
+        if r_arm:
+            body_angles.append(b_angles[2])
+            body_angles.append(b_angles[3])
+        if l_leg:
+            body_angles.append(b_angles[4])
+            body_angles.append(b_angles[5])
+        if r_leg:
+            body_angles.append(b_angles[6])
+            body_angles.append(b_angles[7])
+        if neck_p:
+            body_angles.append(b_angles[8])
+        
+        
+        b =  get_nearest_neighbor(np.transpose(all_angles), np.transpose(body_angles), bodies)[0]
         p2 = b[0]
         nchest.x, nchest.y = np.transpose([p2[1], p2[2], p2[9], p2[13], p2[6], p2[1], p2[0]])
         
@@ -402,69 +441,152 @@ def interactive_skeleton(body, angles, bodies, r_arm = True, l_arm = True, r_leg
              'y' : bqp.LinearScale(min = 1000, max = 0)}
     
     #initialization of the nearest neighbor of the interactive body.
-    nbody = get_nearest_neighbor(angles, body, bodies)[0]
+    body_angles = []
+    all_angles = []
+    b_angles = member_relative_angles(body)
+    a = np.transpose(angles)
+    
+    if l_arm:
+        body_angles.append(b_angles[0])
+        body_angles.append(b_angles[1])
+        all_angles.append(a[0])
+        all_angles.append(a[1])
+    if r_arm:
+        body_angles.append(b_angles[2])
+        body_angles.append(b_angles[3])
+        all_angles.append(a[2])
+        all_angles.append(a[3])
+    if l_leg:
+        body_angles.append(b_angles[4])
+        body_angles.append(b_angles[5])
+        all_angles.append(a[4])
+        all_angles.append(a[5])
+    if r_leg:
+        body_angles.append(b_angles[6])
+        body_angles.append(b_angles[7])
+        all_angles.append(a[6])
+        all_angles.append(a[7])
+    if neck_p:
+        body_angles.append(b_angles[8])
+        all_angles.append(a[8])
+        
+    nbody = get_nearest_neighbor(np.transpose(all_angles), np.transpose(body_angles), bodies)[0]
     
     #points of the interactive and neighbor bodies
     p = body[0]
     p2 = nbody[0]
     
-    
+    marks = []
     #Constructions of the two bodies: the interactive one and its nearest neighbor. body part beginnig with n... are part of the neighbor.
     #draw the chest
     chest = bqp.Lines(scales=scales)
     chest.x, chest.y = np.transpose([p[1], p[2], p[9], p[13], p[6], p[1]])
+    marks.append(chest)
     
     nchest = bqp.Lines(scales=scales,  colors=['red'])
     nchest.x, nchest.y = np.transpose([p2[1], p2[2], p2[9], p2[13], p2[6], p2[1], p2[0]])
+    marks.append(nchest)
     
     #draw the head
     head = bqp.Lines(scales=scales)
     head.x = np.cos(np.linspace(0, 2*np.pi, 100))*60+p[0][0]
     head.y = np.sin(np.linspace(0, 2*np.pi, 100))*65+p[0][1]
+    marks.append(head)
     
     
     nhead_x = np.cos(np.linspace(0, 2*np.pi, 100))*60+p2[0][0]
     nhead_y = np.sin(np.linspace(0, 2*np.pi, 100))*65+p2[0][1]
     nhead = bqp.Lines(x=nhead_x, y=nhead_y, scales=scales,  colors=['red'])
+    marks.append(nhead)
     
-    
+    to_keep=list()
+    if l_arm:
+        to_keep.append(p[3])
+        to_keep.append(p[4])
+    if r_arm:
+        to_keep.append(p[7])
+        to_keep.append(p[8])
+    if l_leg:
+        to_keep.append(p[10])
+        to_keep.append(p[11])
+    if r_leg:
+        to_keep.append(p[14])
+        to_keep.append(p[15])
+    if neck_p:
+        to_keep.append(p[0])
     #movable points: arms first, left side first
     scat = bqp.Scatter(scales = scales, enable_move = True, update_on_move = True, stroke_width = 7)
-    scat.x , scat.y = np.transpose([p[3], p[4], p[7], p[8], p[10], p[11], p[14], p[15], p[0]])
+    scat.x , scat.y = np.transpose(to_keep)
+    marks.append(scat)
     
+    i = 0
     left_arm = bqp.Lines(scales=scales)
-    left_arm.x, left_arm.y = [[p[2][0], scat.x[0], scat.x[1]],[p[2][1], scat.y[0], scat.y[1]]]
+    if l_arm:
+        left_arm.x, left_arm.y = [[p[2][0], scat.x[i], scat.x[i+1]],[p[2][1], scat.y[i], scat.y[i+1]]]
+        i +=2
+    else:
+        left_arm.x, left_arm.y = [[p[2][0], p[3][0], p[4][0]],[p[2][1], p[3][1],p[4][1]]]
+    marks.append(left_arm)
     
     nleft_arm = bqp.Lines(scales=scales, colors=['red'])
     nleft_arm.x, nleft_arm.y = [[p2[2][0], p2[3][0], p2[4][0]],[p2[2][1], p2[3][1], p2[4][1]]]
+    marks.append(nleft_arm)
     
     right_arm = bqp.Lines(scales=scales)
-    right_arm.x, right_arm.y = [[p[6][0], scat.x[2], scat.x[3]],[p[6][1], scat.y[2], scat.y[3]]]
+    if r_arm:
+        right_arm.x, right_arm.y = [[p[6][0], scat.x[i], scat.x[i+1]],[p[6][1], scat.y[i], scat.y[i+1]]]
+        i+=2
+    else:
+        right_arm.x, right_arm.y = [[p[6][0], p[7][0], p[8][0]],[p[6][1], p[7][1],p[8][1]]]
+    
+    marks.append(right_arm)
     
     nright_arm = bqp.Lines(scales=scales,  colors=['red'])
     nright_arm.x, nright_arm.y = [[p2[6][0], p2[7][0], p2[8][0]],[p2[6][1], p2[7][1], p2[8][1]]]
+    marks.append(nright_arm)
+    
     
     left_leg = bqp.Lines(scales=scales)
-    left_leg.x, left_leg.y = [[p[9][0], scat.x[4], scat.x[5]],[p[9][1], scat.y[4], scat.y[5]]]
+    if l_leg:
+        left_leg.x, left_leg.y = [[p[9][0], scat.x[i], scat.x[i+1]],[p[9][1], scat.y[i], scat.y[i+1]]]
+        i+=2
+    else:
+        left_leg.x, left_leg.y = [[p[9][0], p[10][0], p[11][0]],[p[9][1], p[10][1],p[11][1]]]
+    marks.append(left_leg)
     
     nleft_leg = bqp.Lines(scales=scales,  colors=['red'])
     nleft_leg.x, nleft_leg.y = [[p2[9][0], p2[10][0], p2[11][0]],[p2[9][1], p2[10][1], p2[11][1]]]
+    marks.append(nleft_leg)
+    
     
     right_leg = bqp.Lines(scales=scales)
-    right_leg.x, right_leg.y = [[p[13][0], scat.x[6], scat.x[7]],[p[13][1], scat.y[6], scat.y[7]]]
+    if r_leg:
+        right_leg.x, right_leg.y = [[p[13][0], scat.x[i], scat.x[i+1]],[p[13][1], scat.y[i], scat.y[i+1]]]
+        i+=2
+    else:
+        right_leg.x, right_leg.y = [[p[13][0], p[14][0], p[15][0]],[p[13][1], p[14][1], p[15][1]]]
+    marks.append(right_leg)
+    
     
     nright_leg = bqp.Lines(scales=scales,  colors=['red'])
     nright_leg.x, nright_leg.y = [[p2[13][0], p2[14][0], p2[15][0]],[p2[13][1], p2[14][1], p2[15][1]]]
+    marks.append(nright_leg)
+    
     
     neck =  bqp.Lines(scales=scales)
-    neck.x, neck.y = [[p[1][0], scat.x[8]],[p[1][1], scat.y[8]]]
-    
+    if neck_p:
+        neck.x, neck.y = [[p[1][0], scat.x[i]],[p[1][1], scat.y[i]]]
+        i+=1
+    else:
+        neck.x, neck.y = [[p[1][0], p[0][0]],[p[1][1], p[0][1]]]
+    marks.append(neck)
     scat.observe(refresh, names=['x', 'y'])
     
 
-    return bqp.Figure(marks=[scat, left_arm, right_arm, left_leg, right_leg, chest, head, 
-                             nleft_arm, nright_arm, nleft_leg, nright_leg, nchest, nhead, neck], 
+    return bqp.Figure(marks=marks, 
                       padding_y = 0., min_height = 750, min_width = 750)
+
+
 
 
 def mean_angle(angles):
@@ -529,17 +651,17 @@ def plot_skeleton(body):
     fig = matplotlib.pyplot.gcf()
     fig.set_size_inches(10, 10)
     
-def plot_nearest_neighbor(angles, body, bodies):
+def plot_nearest_neighbor(angles, body_angles, bodies):
     """plot the bodies collection's nearest neighbor of a body"""
-    plot_skeleton(get_nearest_neighbor(angles, body, bodies)[0])
+    plot_skeleton(get_nearest_neighbor(angles, body_angles, bodies)[0])
     
-def get_nearest_neighbor(angles, body, bodies):
+def get_nearest_neighbor(angles, body_angles, bodies):
     """Get the bodies collection's nearest neighbor of a body"""
     tree = scipy.spatial.cKDTree(angles, leafsize=100)
-    distance = tree.query(member_relative_angles(body), k=1, distance_upper_bound=1000)
+    distance = tree.query(body_angles, k=1, distance_upper_bound=1000)
     return (bodies[distance[1]], distance[1])
 
-def get_n_nearest_neighbor(angles, body, deviation, n=100, dist=50):
+def get_n_nearest_neighbor(angles, body_angles, deviation, n=100, dist=50):
     
     def angles_dist(a1, a2):
         """compute the distance between two arrays of relative angles. a1 has only valid values but a2
@@ -550,28 +672,27 @@ def get_n_nearest_neighbor(angles, body, deviation, n=100, dist=50):
     NN = sklearn.neighbors.NearestNeighbors(n_neighbors=n, radius=dist, leaf_size=30,
                                              metric=angles_dist, algorithm='auto')
     NN.fit(angles)
-    return NN.kneighbors([member_relative_angles(body)])
+    return NN.kneighbors([body_angles])
 
 
-def get_distant_neighbors(angles, body, deviation, dist=50):
+def get_distant_neighbors(angles, body_angles, deviation, dist=50):
     """get all the bodies id of bodies that are nearer than dist from a certain body"""
-    origin_angles = member_relative_angles(body)
     ids = list()
     for i in range(len(angles)):
-        if angles_distance(origin_angles, angles[i], deviation) < dist:
+        if angles_distance(body_angles, angles[i], deviation) < dist:
             ids.append(i)
     return ids
 
 
-def pose_rarity(body, angles, dist=50):
+def pose_rarity(body_angles, angles, dist=50):
     """return the rarity ratio of a certain pose in the collection"""
-    n = len(get_distant_neighbors(angles, body, dist=dist))
+    n = len(get_distant_neighbors(angles, body_angles, dist=dist))
     return float(n)/len(angles)
 
 
-def plot_n_nearest_neighbors(angles, body, bodies, paintings, deviation, n=5):
+def plot_n_nearest_neighbors(angles, body_angles, bodies, paintings, deviation, n=5):
     """plot the n nearest neighbor's paintings with skeleton drawn on them with some info on the painting"""
-    distances, b = get_n_nearest_neighbor(angles, body, deviation, n)
+    distances, b = get_n_nearest_neighbor(angles, body_angles, deviation, n)
     bd_i = b[0]
     f, ax = plt.subplots(n,2, figsize=(24,n * 15))
     for i in range(n):
