@@ -13,3 +13,6 @@ class Limb:
     
     def valid(self):
         return self.p1.valid() and self.p2.valid()
+    
+    def get_points(self):
+        return [self.p1, self.p2]
