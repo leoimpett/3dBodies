@@ -10,6 +10,13 @@ nb_l = 17
 original_limbs = [[1,2],[1,6],[2,3],[3,4],[6,7],[7,8],[1,9],[9,10],[10,11],\
                    [1,13],[13,14],[14,15],[1,0],[0,16],[16,18],[0,17],[17,19]]
 
+def bound(a):
+    """bounds an angle between -180 and +180"""
+    while a > 180:
+        a -= 360
+    while a <= -180:
+        a += 360
+    return a
 
 class Body:
     
@@ -104,7 +111,72 @@ class Body:
         new_limbs = self.link_limbs(new_pts)
         return Body(new_pts, new_limbs, self.painting, self.ignored).translate(original_neck)
         
-        
-        
-          
     
+    def middle_length(self):
+        """returns the length of the breast"""
+        lol = self.limbs[6].length()
+        lor = self.limbs[9].length()
+        if lor == 0:
+            return lol
+        if lol == 0:
+            return lor
+        return (lor + lol)/2.0
+    
+    def find_absolute_angles(self):
+        """find the absolute angle of each of all the limbs of a body compared 
+        to horizontal axis and return a list containing all those angles"""
+        angles = list();
+        for l in self.limbs:
+            angles.append(l.angle())
+        return angles
+    
+    def compute_scale(self, mean):
+        """computes the scale that we will apply to our body to make it have a mean size"""
+        lom = self.middle_length()
+        if lom == 0:
+            return 1
+        return mean / lom
+    
+    def relative_angles(self, dev):
+        angles = self.find_absolute_angles()
+        rel = np.zeros(10)+360
+        
+        al = self.limbs[6].angle()
+        ar = self.limbs[9].angle()
+        if (not al) and (not ar):
+            gen_angle = 90.0
+        elif not al:
+            gen_angle = ar + dev
+        elif not ar:
+            gen_angle = al - dev
+        else:
+            gen_angle = Limb(self.pts[1], Limb(self.pts[9], self.pts[13]).middle()).angle()
+                      
+                      
+        shoulder = Limb(self.pts[2], self.pts[6]).angle()
+        if not shoulder:
+            shoulder = 0.0
+        
+        
+        if self.limbs[2].valid():
+            rel[0] = bound(angles[2]-(shoulder + 180))
+        if self.limbs[3].valid():
+            rel[1] = bound(angles[3]-angles[2])
+        if self.limbs[4].valid():
+            rel[2] = bound(angles[4]-shoulder)
+        if self.limbs[5].valid():
+            rel[3] = bound(angles[5]-angles[4])
+        if self.limbs[7].valid():
+            rel[4] = bound(angles[7]-gen_angle)
+        if self.limbs[8].valid():
+            rel[5] = bound(angles[8]-angles[7])
+        if self.limbs[10].valid():
+            rel[6] = bound(angles[10]-gen_angle)
+        if self.limbs[11].valid():
+            rel[7] = bound(angles[11]-angles[10])
+            
+        if self.limbs[12].valid():
+            rel[8] = bound(angles[12]-shoulder)
+        rel[9] = gen_angle
+                      
+        return rel

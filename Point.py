@@ -6,6 +6,8 @@ class Point:
         self.x = x
         self.y = y
         self.valid = valid
+        if self.x == 0 and self.y == 0:
+            self.valid = False
         
     def dist(self, p):
         """computes the distance between this point and another point p"""
@@ -15,7 +17,9 @@ class Point:
 
     def translate(self, dx, dy):
         """translates a point of a vector (dx,dy)"""
-        return Point(self.x + dx, self.y + dy)
+        if self.valid:
+            return Point(self.x + dx, self.y + dy)
+        return self
         
     def scale(self, s):
         """scale the point of s"""
@@ -24,6 +28,7 @@ class Point:
     def angle(self, p):
         """compute the absolute angle with the horizontal of the line passing by two points"""
         return math.degrees(math.atan2(p.x - self.x, p.y - self.y))
+        
     
     
     def invalidate(self):
