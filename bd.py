@@ -1,5 +1,7 @@
 import numpy as np
 import math
+import sklearn
+import sklearn.neighbors
 
 from Point import Point
 from Limb import Limb
@@ -211,3 +213,44 @@ def angles_distance(a1, a2, deviation):
         else:
             s += bound(a2[i]-a1[i]) * bound(a2[i]-a1[i])
     return math.sqrt(s)
+
+def keep_angles(angles, to_keep):
+    """keeps only angles of interest"""
+    keep_angles = list()
+    if not len(to_keep) == 6:
+        return angles
+    tr = np.transpose(angles)
+    if to_keep[0]:
+        keep_angles.append(tr[0])
+        keep_angles.append(tr[1])
+    if to_keep[1]:
+        keep_angles.append(tr[2])
+        keep_angles.append(tr[3])
+    if to_keep[2]:
+        keep_angles.append(tr[4])
+        keep_angles.append(tr[5])
+    if to_keep[3]:
+        keep_angles.append(tr[6])
+        keep_angles.append(tr[7])
+    if to_keep[4]:
+        keep_angles.append(tr[8])
+    if to_keep[5]:
+        keep_angles.append(tr[9])
+    
+    return np.transpose(keep_angles)
+    
+
+def get_n_nearest_neighbor(angles, body, deviation, to_keep, n=100, dist=50):
+    """gets the n nearest neighbors of a body"""
+    angles = keep_angles(angles, to_keep)
+    body_angles = keep_angles([body.relative_angles(deviation)], to_keep)[0]
+    def angles_dist(a1, a2):
+        """compute the distance between two arrays of relative angles. a1 has only valid values but a2
+        may have invalid values (360)"""
+        return angles_distance(a1,a2,deviation)
+    
+    
+    NN = sklearn.neighbors.NearestNeighbors(n_neighbors=n, radius=dist, leaf_size=30,
+                                             metric=angles_dist, algorithm='auto')
+    NN.fit(angles)
+    return NN.kneighbors([body_angles])
