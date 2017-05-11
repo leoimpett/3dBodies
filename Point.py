@@ -8,7 +8,12 @@ class Point:
         self.valid = valid
         if self.x == 0 and self.y == 0:
             self.valid = False
-        
+    
+
+    def eq(self, p):
+        return self.x == p.x and self.y == p.y
+    
+    
     def dist(self, p):
         """computes the distance between this point and another point p"""
         if not(self.valid and p.valid):
@@ -27,7 +32,7 @@ class Point:
         
     def angle(self, p):
         """compute the absolute angle with the horizontal of the line passing by two points"""
-        return math.degrees(math.atan2(p.x - self.x, p.y - self.y))
+        return math.degrees(math.atan2(p.y - self.y, p.x - self.x))
         
     
     

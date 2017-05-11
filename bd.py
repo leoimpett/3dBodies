@@ -1,4 +1,6 @@
 import numpy as np
+import math
+
 from Point import Point
 from Limb import Limb
 from Body import Body
@@ -11,7 +13,21 @@ limbSeq  = [[2,3], [2,6], [3,4], [4,5], [6,7], [7,8], [2,9], [9,10], \
 original_limbs = [[1,2],[1,6],[2,3],[3,4],[6,7],[7,8],[1,9],[9,10],[10,11],\
                    [1,13],[13,14],[14,15],[1,0],[0,16],[16,18],[0,17],[17,19]]
 
+base_angles = [180., 0., 180., 180., 0., 0., 105., 90.,\
+               90., 75., 90., 90., -90., -135., -170., -45., -10.]
 
+ignored = [5, 12, 16, 17, 18, 19]
+
+def angles():
+    return base_angles
+
+def bound(a):
+    """bounds an angle between -180 and +180"""
+    while a > 180:
+        a -= 360
+    while a <= -180:
+        a += 360
+    return a
 
 
 def get_bodies_from_picture(painting, p_id):
@@ -19,7 +35,7 @@ def get_bodies_from_picture(painting, p_id):
     which represent each body."""
     subset   = painting[2]
     peaks    = painting[4]
-    ignored = [5, 12, 16, 17, 18, 19]
+    
     
     #get all the points in an image
     points = list();
@@ -126,3 +142,72 @@ def all_relative_angles(bodies):
     for b in bodies:
         angles.append(b.relative_angles(dev))
     return angles
+
+
+def angles_to_body(angles, ll, center):
+    """constructs a body from limb length and angles of limbs"""
+    pts = [Point(0,0).invalidate()] * 20
+    pts[1] = center
+    lbs = original_limbs
+    limbs = list()
+    for i in range(17):
+        p1 = pts[lbs[i][0]]
+        l = ll[i]
+        a = angles[i]
+        dx, dy = int(math.cos(math.pi * a/180) * l), int(math.sin(math.pi * a/180) * l)
+        p2 = p1.translate(dx,dy)
+        pts[lbs[i][1]] = p2
+        limbs.append(Limb(pts[lbs[i][0]], pts[lbs[i][1]]))
+    return Body(pts, limbs, 0, ignored)
+    
+def mean_angle(angles):
+    """compute the mean angle of an angle list."""
+    s = 0.0
+    c = 0.0
+    n = 0
+    for a in angles:
+        s += math.sin(math.radians(a))
+        c += math.cos(math.radians(a))
+        n += 1
+    return math.degrees(math.atan2(s,c))
+
+
+def compute_mean_relative_angles(relative_angles):
+    """compute the mean relative angle of each limb"""
+    angles = np.transpose(relative_angles)
+    mean = np.zeros(len(angles))
+    for i in range(len(angles)):
+        mean[i] = mean_angle(angles[i])
+    return mean
+
+
+def compute_std_deviation(relative_angles):
+    """compute the standard deviation of an array of relative angles"""
+    
+    means = compute_mean_relative_angles(relative_angles)
+    angles = np.transpose(relative_angles)
+    std = np.zeros(len(angles))
+    for i in range(len(angles)):
+        m = means[i]
+        n = 0
+        s = 0.0
+        for a in angles[i]:
+            if a != 360:
+                s += abs(a-m)**2
+                n+=1
+        std[i] = math.sqrt(s/n)
+    return std
+
+
+def angles_distance(a1, a2, deviation):
+    """compute the distance between two arrays of relative angles. a1 has only valid values but a2
+    may have invalid values (360)"""
+    if len(a1) != len(a2):
+        return -1
+    s = 0.0
+    for i in range(len(a1)):
+        if a2[i] == 360:
+            s += deviation[i]**2
+        else:
+            s += bound(a2[i]-a1[i]) * bound(a2[i]-a1[i])
+    return math.sqrt(s)

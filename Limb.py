@@ -2,15 +2,23 @@ from Point import Point
 
 class Limb:
     def __init__(self, p1, p2):
-        self.p1 = p1
-        self.p2 = p2
-        if self.p1 == None:
-            self.p1 = Point(0,0).invalidate()
-        if self.p2 == None:
-            self.p2 = Point(0,0).invalidate()
+        
+        if type(p1) == type(None):
+            self.p1 = Point(0,0, False)
+        else:
+            self.p1 = p1
+        if type(p2) == type(None):
+            self.p2 = Point(0,0, False)
+        else:
+            self.p2 = p2
+        
+        self.val = True
+        if self.p1.eq(self.p2):
+            self.val = False
+            
     
     def valid(self):
-        return self.p1.valid and self.p2.valid    
+        return self.p1.valid and self.p2.valid and self.val
     
     def length(self):
         return self.p1.dist(self.p2)
@@ -37,6 +45,8 @@ class Limb:
     
     def to_string(self):
         """creates a string representation of a Limb"""
+        if not self.val:
+            return 'ivalid'
         s = 'p1 :\n'
         s += self.p1.to_string()
         s += '\np2 :\n'
