@@ -98,6 +98,16 @@ def all_bodies_mean_limb_length(bodies):
             mean_lengths[i] = limb_length_sum[i] / n_limbs[i]
     return mean_lengths
 
+def middle_mean_length(bodies):
+    n = 0
+    s = 0.0
+    for b in bodies:
+        l = b.middle_length()
+        if not l == 0:
+            n+= 1
+            s += l
+    return s/n
+
 def compute_dev(bodies):
     count = 0
     tot = 0.0
