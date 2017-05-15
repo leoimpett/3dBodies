@@ -3,6 +3,11 @@ import math
 import sklearn
 import sklearn.neighbors
 
+from collections import Counter
+from collections import OrderedDict
+from scipy import stats
+import random
+
 from Point import Point
 from Limb import Limb
 from Body import Body
@@ -102,7 +107,7 @@ def resize_bodies(bodies, mean):
 
 def all_bodies_mean_limb_length(bodies):
     """compute the mean length of each limb of body (i.e. the mean length of a right leg)"""
-    n_limbs = np.zeros(17, np.int16)
+    n_limbs = np.zeros(17, np.int32)
     limb_length_sum = np.zeros(17)
     for b in bodies:
         l = b.limbs
@@ -243,7 +248,7 @@ def keep_angles(angles, to_keep):
 def get_n_nearest_neighbor(angles, body, deviation, to_keep, n=100, dist=50):
     """gets the n nearest neighbors of a body"""
     angles = keep_angles(angles, to_keep)
-    body_angles = keep_angles([body.relative_angles(deviation)], to_keep)[0]
+    body_angles = keep_angles([body.relative_angles(deviation[9])], to_keep)[0]
     def angles_dist(a1, a2):
         """compute the distance between two arrays of relative angles. a1 has only valid values but a2
         may have invalid values (360)"""
@@ -254,3 +259,116 @@ def get_n_nearest_neighbor(angles, body, deviation, to_keep, n=100, dist=50):
                                              metric=angles_dist, algorithm='auto')
     NN.fit(angles)
     return NN.kneighbors([body_angles])
+
+
+def write_p_values(ps, write_type):
+    """write a list of 4 p_values in a file with a painting_id and the number of neighbors"""
+    def to_string(l):
+        """transforms a list of numbers to a list of string"""
+        ls = list()
+        for i in l:
+            ls.append(str(i))
+        return ls
+    
+    f = open('p_values.txt', write_type)
+    if len(ps) == 0:
+        f.close()
+        return
+    for l in ps:
+        l = to_string(l)
+        f.write('\t'.join(l))
+        f.write('\n')
+    f.close()
+
+def read_p_values():
+    """read a file with p_values stored in it"""
+    def to_int_float(l):
+        """transform a list of string to a list of (int, int, float, float, ...)"""
+        ls = list()
+        for i in range(len(l)):
+            if i == 0 or i == 1:
+                ls.append(int(l[i]))
+            else:
+                ls.append(float(l[i]))
+
+        return ls
+    
+    f = open('p_values.txt', 'r')
+    ps = list()
+    l = f.readline()
+    while l:
+        ls = to_int_float(l.split('\t'))
+        ps.append(ls)
+        l = f.readline()
+    f.close()
+    return ps
+
+
+def p_values_from_random(paintings, bodies, angles, deviation):
+    """computes 4 p-values for a set of neighbors of a random body from the paintings dataset
+    Return n: the number of neighbors, b: the index of the random body, p_values, the 4 p_values computed"""
+    #generate random n
+    n = random.randint(20,100)
+    
+    #get a random body from all the bodies
+    b = random.randint(0, len(bodies)-1)
+    base_body = bodies[b]
+    
+    keep = [True] * 6
+    
+    #control which members the random body has
+    if not base_body.has_left_arm():
+        keep[0] = False
+    if not base_body.has_right_arm():
+        keep[1] = False
+    if not base_body.has_left_leg():
+        keep[2] = False
+    if not base_body.has_right_leg():
+        keep[3] = False
+    if not base_body.has_neck():
+        keep[4] = False
+    
+    #get the neighbors and link them to their painting
+    neighbors = get_n_nearest_neighbor(angles, base_body, deviation, keep, n=n, dist=150)[1][0]
+    subpaintings = list()
+    for i in neighbors:
+        subpaintings.append(paintings[bodies[i].painting])
+    
+    
+    zipped = zip(*paintings)
+    subzipped = zip(*subpaintings)
+    
+    p_values = list()
+    
+    #indexes of metadata we want
+    i = [12,13,14,15]
+    
+    for k in i:
+        f = Counter(zipped[k])
+        sf = Counter(subzipped[k])
+        for key in f.keys():
+            f[key] /= float(len(paintings))
+            sf[key] /= float(len(subpaintings))
+            
+        
+        f = OrderedDict(sorted(f.items(), key=lambda t: t[0]))
+        sf = OrderedDict(sorted(sf.items(), key=lambda t: t[0]))
+        
+        v1 = f.values()
+        v2 = sf.values()
+        
+        
+        p_values.append(stats.ks_2samp(v1, v2)[1])
+    return n,b,p_values
+
+
+def p_values_random_hypothesis(nb, paintings, bodies, angles, deviation, write_type):
+    """create nb random hypothesis and store them into a text file to keep them"""
+    samples = list()
+    i = 0
+    while i < nb:
+        n,b,p = p_values_from_random(paintings, bodies, angles, deviation)
+        m = min(p)
+        samples.append([n] + [b] + p + [m])
+        i += 1
+    write_p_values(samples, write_type)

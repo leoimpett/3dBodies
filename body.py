@@ -44,6 +44,7 @@ class Body:
         for i in self.ignored:
             self.pts[i].invalidate()
             
+    
     def get_body_limbs(self):
         """return the breast limbs"""
         b_limbs = list()
@@ -57,8 +58,21 @@ class Body:
             if not l.valid():
                 return False
         return True
-        
-        
+    
+    def has_right_arm(self):
+        return self.all_limbs_valid([self.limbs[4], self.limbs[5]])
+    
+    def has_right_leg(self):
+        return self.all_limbs_valid([self.limbs[10], self.limbs[11]])
+
+    def has_left_arm(self):
+        return self.all_limbs_valid([self.limbs[2], self.limbs[3]])
+    
+    def has_left_leg(self):
+        return self.all_limbs_valid([self.limbs[7], self.limbs[8]])
+    
+    def has_neck(self):
+        return self.all_limbs_valid([self.limbs[12]])
         
     def draw(self, image, color):
         """Draw a body skeleton on an image in a color"""
