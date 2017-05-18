@@ -102,7 +102,7 @@ def resize_bodies(bodies, mean):
     res = list()
     for b in bodies:
         scale = b.compute_scale(mean)
-        res.append(b.scale(scale))
+        res.append(b.scale(scale).translate(Point(500,300)))
     return res
 
 def all_bodies_mean_limb_length(bodies):

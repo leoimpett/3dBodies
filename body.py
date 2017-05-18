@@ -194,3 +194,11 @@ class Body:
         rel[9] = gen_angle
                       
         return rel
+    
+    def rotate(self, angle):
+        o = self.pts[1]
+        for p in self.pts:
+            p.rotate(o,angle)
+        return self
+            
+    
