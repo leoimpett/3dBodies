@@ -10,12 +10,13 @@ For p-value computation.
 - precompute NN KD-tree
 - try approximate LSH forest: http://scikit-learn.org/stable/modules/generated/sklearn.neighbors.LSHForest.html#sklearn.neighbors.LSHForest 
 - hybrid approach: LSH approx. generate list of p-values, then check the hypotheses again with precise KD-tree. 
-- include timing graphs for varying n nearest neighbours and N dataset size. 
 - look at getting skeleton much more real-time; if displaying the URLs takes too long, display just skeleton and metadata. 
 - in interactive script: instead of searching every 'refresh', every time a point is changed by e.g. more than 5PX
 - for hypotheses: remove artworks that don't have *any* bodies in them. Maybe you want also to remove all the bodies that don't have enough limbs (eg. remove all that don't have at least X=6 points)
 - Implement both 'metadata WRT bodies' and 'metadata WRT paintings'. 
 - way to display all the skeletons of the hypothesis, and the metadata. Also original images for the first 10. 
+
+LATER; - include timing graphs for varying n nearest neighbours and N dataset size. 
 
 
 SVM : query by metadata!
@@ -27,7 +28,7 @@ SVM : query by metadata!
 - calculate *PROBABILITIES* for X (using the SVM)
 - which are the most probable in query? 
 - Display results as if you had some automatic hypothesis. 
-- if you have time, do this inside a 4-fold cross validation, i.e. separate into 4 groups and then Train or Calculate-probailities:
+- do this inside a 4-fold cross validation, i.e. separate into 4 groups and then Train or Calculate-probailities:
 TTTC
 TTCT
 TCTT
