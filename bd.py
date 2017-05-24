@@ -11,7 +11,7 @@ import random
 
 from Point import Point
 from Limb import Limb
-from Body import Body
+from body import Body
 
 
 limbSeq  = [[2,3], [2,6], [3,4], [4,5], [6,7], [7,8], [2,9], [9,10], \
@@ -26,6 +26,8 @@ base_angles = [180., 0., 180., 180., 0., 0., 105., 90.,\
 
 ignored = [5, 12, 16, 17, 18, 19]
 
+n_valid_points = 8
+
 def angles():
     return base_angles
 
@@ -36,6 +38,18 @@ def bound(a):
     while a <= -180:
         a += 360
     return a
+
+def filter_paintings(paintings):
+    """remove from paintings all the paintings that does not have at least one valid body"""
+    new_p = list()
+    for p in paintings:
+        n = 0
+        for b in p[2]:
+            if b[-1] >= n_valid_points:
+                n+= 1
+        if n > 0:
+            new_p.append(p)
+    return new_p
 
 
 def get_bodies_from_picture(painting, p_id):
@@ -96,6 +110,14 @@ def construct_body_list(n, paintings):
             bodies.append(b)
         i += 1
     return bodies
+
+def filter_bodies(bodies):
+    """remove from the body list all the bodies that have not at least a certain number of valid points"""
+    new_b = list()
+    for b in bodies:
+        if b.count_valid_points() >= n_valid_points:
+            new_b.append(b)
+    return new_b
 
 
 def resize_bodies(bodies, mean):

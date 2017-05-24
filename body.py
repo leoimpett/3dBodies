@@ -204,5 +204,12 @@ class Body:
         for p in self.pts:
             p.rotate(o,angle)
         return self
+    
+    def count_valid_points(self):
+        i = 0
+        for p in self.pts:
+            if p.valid:
+                i += 1
+        return i
             
     
