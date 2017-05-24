@@ -2,6 +2,7 @@ import numpy as np
 import math
 import sklearn
 import sklearn.neighbors
+import time
 
 from collections import Counter
 from collections import OrderedDict
@@ -257,8 +258,37 @@ def get_n_nearest_neighbor(angles, body, deviation, to_keep, n=100, dist=50):
     
     NN = sklearn.neighbors.NearestNeighbors(n_neighbors=n, radius=dist, leaf_size=30,
                                              metric=angles_dist, algorithm='auto')
+    
+    t = time.time()
     NN.fit(angles)
-    return NN.kneighbors([body_angles])
+    print time.time()-t
+    t = time.time()
+    ne = NN.kneighbors([body_angles])
+    print time.time()-t
+    return ne
+
+def pre_fit(angles, deviation, n=100, dist=50):
+    """returns the angles fitted in a NearestNeighbors object"""
+    #angles = keep_angles(angles, to_keep)
+    def angles_dist(a1, a2):
+        """compute the distance between two arrays of relative angles. a1 has only valid values but a2
+        may have invalid values (360)"""
+        return angles_distance(a1,a2,deviation)
+    
+    NN = sklearn.neighbors.NearestNeighbors(n_neighbors=n, radius=dist, leaf_size=30,
+                                             metric=angles_dist, algorithm='auto')
+   
+    nn = NN.fit(angles)
+    return nn
+
+
+def nearest_neighbors(n, body, deviation, nn):
+    """gets the n nearest neighbors of a body"""
+    
+    body_angles = body.relative_angles(deviation[9])
+    
+    ne = nn.kneighbors([body_angles])[:n]
+    return ne
 
 
 def write_p_values(ps, write_type):
@@ -304,32 +334,23 @@ def read_p_values():
     return ps
 
 
-def p_values_from_random(paintings, bodies, angles, deviation):
+def p_values_from_random(paintings, bodies, angles, deviation, nn):
     """computes 4 p-values for a set of neighbors of a random body from the paintings dataset
     Return n: the number of neighbors, b: the index of the random body, p_values, the 4 p_values computed"""
     #generate random n
     n = random.randint(20,100)
     
-    #get a random body from all the bodies
-    b = random.randint(0, len(bodies)-1)
-    base_body = bodies[b]
+    #as base body we want a body that is complete
+    body_complete = False
+    while not body_complete:
+        #get a random body from all the bodies
+        b = random.randint(0, len(bodies)-1)
+        base_body = bodies[b]
+        body_complete = base_body.complete()
     
-    keep = [True] * 6
-    
-    #control which members the random body has
-    if not base_body.has_left_arm():
-        keep[0] = False
-    if not base_body.has_right_arm():
-        keep[1] = False
-    if not base_body.has_left_leg():
-        keep[2] = False
-    if not base_body.has_right_leg():
-        keep[3] = False
-    if not base_body.has_neck():
-        keep[4] = False
     
     #get the neighbors and link them to their painting
-    neighbors = get_n_nearest_neighbor(angles, base_body, deviation, keep, n=n, dist=150)[1][0]
+    neighbors = nearest_neighbors(n, base_body, deviation, nn)[1][0]
     subpaintings = list()
     for i in neighbors:
         subpaintings.append(paintings[bodies[i].painting])
@@ -366,8 +387,9 @@ def p_values_random_hypothesis(nb, paintings, bodies, angles, deviation, write_t
     """create nb random hypothesis and store them into a text file to keep them"""
     samples = list()
     i = 0
+    nn = pre_fit(angles, deviation, n=100, dist=50)
     while i < nb:
-        n,b,p = p_values_from_random(paintings, bodies, angles, deviation)
+        n,b,p = p_values_from_random(paintings, bodies, angles, deviation, nn)
         m = min(p)
         samples.append([n] + [b] + p + [m])
         i += 1

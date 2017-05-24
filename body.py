@@ -73,6 +73,10 @@ class Body:
     
     def has_neck(self):
         return self.all_limbs_valid([self.limbs[12]])
+    
+    def complete(self):
+        return self.has_left_arm() and self.has_left_leg() and self.has_neck() \
+            and self.has_right_arm() and self.has_right_leg()
         
     def draw(self, image, color):
         """Draw a body skeleton on an image in a color"""
