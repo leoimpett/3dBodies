@@ -2,6 +2,7 @@ import numpy as np
 import math
 import sklearn
 import sklearn.neighbors
+from sklearn.neighbors import LSHForest
 import time
 
 from collections import Counter
@@ -312,8 +313,13 @@ def nearest_neighbors(n, body, deviation, nn):
     ne = nn.kneighbors([body_angles])[:n]
     return ne
 
+def approximate_nearest_neighbors(n, body, deviation, lshf):
+    """compute an approximation of the nearest neighbors"""
+    b = body.relative_angles(deviation[9])
+    return lshf.kneighbors([b], n_neighbors=n)[1]
 
-def write_p_values(ps, write_type):
+
+def write_p_values(ps, approx):
     """write a list of 4 p_values in a file with a painting_id and the number of neighbors"""
     def to_string(l):
         """transforms a list of numbers to a list of string"""
@@ -321,8 +327,10 @@ def write_p_values(ps, write_type):
         for i in l:
             ls.append(str(i))
         return ls
-    
-    f = open('p_values.txt', write_type)
+    if approx:
+        f = open('approx_p_values.txt', 'a')
+    else:
+        f = open('p_values.txt', 'a')
     if len(ps) == 0:
         f.close()
         return
@@ -332,7 +340,7 @@ def write_p_values(ps, write_type):
         f.write('\n')
     f.close()
 
-def read_p_values():
+def read_p_values(approx=False):
     """read a file with p_values stored in it"""
     def to_int_float(l):
         """transform a list of string to a list of (int, int, float, float, ...)"""
@@ -344,8 +352,10 @@ def read_p_values():
                 ls.append(float(l[i]))
 
         return ls
-    
-    f = open('p_values.txt', 'r')
+    if approx:
+        f = open('approx_p_values.txt', 'r')
+    else:
+        f = open('p_values.txt', 'r')
     ps = list()
     l = f.readline()
     while l:
@@ -356,7 +366,7 @@ def read_p_values():
     return ps
 
 
-def p_values_from_random(paintings, bodies, angles, deviation, nn):
+def p_values_from_random(paintings, bodies, angles, deviation, tree, approx):
     """computes 4 p-values for a set of neighbors of a random body from the paintings dataset
     Return n: the number of neighbors, b: the index of the random body, p_values, the 4 p_values computed"""
     #generate random n
@@ -372,7 +382,10 @@ def p_values_from_random(paintings, bodies, angles, deviation, nn):
     
     
     #get the neighbors and link them to their painting
-    neighbors = nearest_neighbors(n, base_body, deviation, nn)[1][0]
+    if approx:
+        neighbors = approximate_nearest_neighbors(n, base_body, deviation, tree)[0]
+    else:
+        neighbors = nearest_neighbors(n, base_body, deviation, tree)[1][0]
     subpaintings = list()
     for i in neighbors:
         subpaintings.append(paintings[bodies[i].painting])
@@ -405,14 +418,17 @@ def p_values_from_random(paintings, bodies, angles, deviation, nn):
     return n,b,p_values
 
 
-def p_values_random_hypothesis(nb, paintings, bodies, angles, deviation, write_type):
+def p_values_random_hypothesis(nb, paintings, bodies, angles, deviation, approx=False):
     """create nb random hypothesis and store them into a text file to keep them"""
     samples = list()
     i = 0
-    nn = pre_fit(angles, deviation, n=100, dist=50)
+    if approx:
+        tree = LSHForest().fit(angles)
+    else:
+        tree = pre_fit(angles, deviation, n=100, dist=50)
     while i < nb:
-        n,b,p = p_values_from_random(paintings, bodies, angles, deviation, nn)
+        n,b,p = p_values_from_random(paintings, bodies, angles, deviation, tree, approx)
         m = min(p)
         samples.append([n] + [b] + p + [m])
         i += 1
-    write_p_values(samples, write_type)
+    write_p_values(samples, approx)
