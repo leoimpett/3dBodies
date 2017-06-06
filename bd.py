@@ -9,6 +9,14 @@ from collections import Counter
 from collections import OrderedDict
 from scipy import stats
 import random
+import bqplot as bqp
+
+from PIL import Image
+from StringIO import StringIO
+import requests
+
+import matplotlib
+from matplotlib import pyplot as plt
 
 from Point import Point
 from Limb import Limb
@@ -432,3 +440,270 @@ def p_values_random_hypothesis(nb, paintings, bodies, angles, deviation, approx=
         samples.append([n] + [b] + p + [m])
         i += 1
     write_p_values(samples, approx)
+    
+def plot_hypothesis(b_id, n, bodies, resized_bodies, angles, paintings, deviation, approx=False):
+    """plot the bodies found in a hypothesis"""
+    body = bodies[b_id]
+    if approx:
+        tree = LSHForest().fit(angles)
+        neighbors = approximate_nearest_neighbors(n, body, deviation, tree)[0]
+    else:
+        tree = pre_fit(angles, deviation, n=100, dist=50)
+        neighbors = nearest_neighbors(n, body, deviation, tree)[1][0]
+    
+    subpaintings = list()
+    
+    for i in neighbors:
+        subpaintings.append(paintings[bodies[i].painting])
+    
+    f, ax = plt.subplots(n,1, figsize=(24,n * 9))
+    for i in range(n):
+        if i < 10:
+            pid = subpaintings[i][1]
+            response = requests.get(pid)
+            try:
+                img = np.array(Image.open(StringIO(response.content)))
+                bodies[neighbors[i]].draw(img, (255,0,0))
+            except:
+                print 'painting '+str(pid)+' failed being retreived, its id is: '+str(bodies[neighbors[i]].painting)
+                img = np.ones((1000,1000,3))
+                resized_bodies[neighbors[i]].draw(img, (1,0,0))
+        else:
+            img = np.ones((1000,1000,3))
+            resized_bodies[neighbors[i]].draw(img, (1,0,0))
+        ax[i].imshow(img)
+        ax[i].axis('off')
+        
+    plt.show()
+    f.set_size_inches(10, 10)
+    
+
+def plot_research(body, n, bodies, resized_bodies, angles, paintings, deviation, approx=False):
+    """plot the bodies found in a hypothesis"""
+    if approx:
+        tree = LSHForest().fit(angles)
+        neighbors = approximate_nearest_neighbors(n, body, deviation, tree)[0]
+    else:
+        tree = pre_fit(angles, deviation, n=100, dist=50)
+        neighbors = nearest_neighbors(n, body, deviation, tree)[1][0]
+    
+    subpaintings = list()
+    for i in neighbors:
+        subpaintings.append(paintings[bodies[i].painting])
+    
+    f, ax = plt.subplots(n,1, figsize=(24,n * 9))
+    for i in range(n):
+        pid = subpaintings[i][1]
+        response = requests.get(pid)
+        try:
+            img = np.array(Image.open(StringIO(response.content)))
+            bodies[neighbors[i]].draw(img, (255,0,0))
+        except:
+            print 'painting '+str(pid)+' failed being retreived, its id is: '+str(bodies[neighbors[i]].painting)
+            img = np.ones((1000,1000,3))
+            resized_bodies[neighbors[i]].draw(img, (1,0,0))
+        ax[i].imshow(img)
+        ax[i].axis('off')
+        
+    plt.show()
+    f.set_size_inches(10, 10)
+    
+
+def interactive_body(body, l_arm = True, r_arm = True, l_leg = True, r_leg = True, neck_p = True, general= True):
+    """Plot an interactive body with which we can play."""
+    
+    middle = Limb(body.pts[9], body.pts[13]).middle()
+    to_keep=list()
+    to_keep2 = list()
+    if l_arm:
+        to_keep.append(body.pts[3].to_array())
+        to_keep.append(body.pts[4].to_array())
+    if r_arm:
+        to_keep.append(body.pts[7].to_array())
+        to_keep.append(body.pts[8].to_array())
+    if l_leg:
+        to_keep.append(body.pts[10].to_array())
+        to_keep.append(body.pts[11].to_array())
+    if r_leg:
+        to_keep.append(body.pts[14].to_array())
+        to_keep.append(body.pts[15].to_array())
+    if neck_p:
+        to_keep.append(body.pts[0].to_array())
+    if general:
+        to_keep2.append(middle.to_array())
+        
+    def refresh_rot(_):
+        middle = Limb(body.pts[9], body.pts[13]).middle()
+        if (not abs(scat2.x[0] - scat3.x[0]) < 15) or not (abs(scat2.y[0] - scat3.y[0])< 15):
+            o = body.pts[1]
+            a = Point(scat2.x[-1], scat2.y[-1]).angle(o) - middle.angle(o)
+            body.rotate(a)
+            
+            middle = Limb(body.pts[9], body.pts[13]).middle()
+            
+            i = 0
+            if l_arm:
+                to_keep[i] = body.pts[3].to_array()
+                to_keep[i+1] = body.pts[4].to_array()
+                i+=2
+            if r_arm:
+                to_keep[i] = body.pts[7].to_array()
+                to_keep[i+1] = body.pts[8].to_array()
+                i+=2
+            if l_leg:
+                to_keep[i] = body.pts[10].to_array()
+                to_keep[i+1] = body.pts[11].to_array()
+                i+=2
+            if r_leg:
+                to_keep[i] = body.pts[14].to_array()
+                to_keep[i+1] = body.pts[15].to_array()
+                i+=2
+            if neck_p:
+                to_keep[i] = body.pts[0].to_array()
+                i+=1
+            if general:
+                to_keep2[0] = [scat2.x[0], scat2.y[0]]
+            
+            scat.x , scat.y = np.transpose(to_keep)
+            scat2.x, scat2.y = np.transpose(to_keep2)
+            scat3.x, scat3.y = scat2.x, scat2.y
+            
+            
+    def refresh(_):
+        
+        
+        chest.x, chest.y = np.transpose([body.pts[1].to_array(), body.pts[2].to_array(), body.pts[9].to_array(), \
+                                     body.pts[13].to_array(), body.pts[6].to_array(), body.pts[1].to_array()])
+        
+        i = 0
+        to_update = []
+        if l_arm:
+            left_arm.x, left_arm.y = [[body.pts[2].x, scat.x[i], scat.x[i+1]],[body.pts[2].y, scat.y[i], scat.y[i+1]]]
+            to_update.append(3)
+            to_update.append(4)
+            i+=2
+        if r_arm:
+            right_arm.x, right_arm.y = [[body.pts[6].x, scat.x[i], scat.x[i+1]],[body.pts[6].y, scat.y[i], scat.y[i+1]]]
+            to_update.append(7)
+            to_update.append(8)
+            i+=2
+        if l_leg:
+            left_leg.x, left_leg.y = [[body.pts[9].x, scat.x[i], scat.x[i+1]],[body.pts[9].y, scat.y[i], scat.y[i+1]]]
+            to_update.append(10)
+            to_update.append(11)
+            i+=2
+        if r_leg:
+            right_leg.x, right_leg.y = [[body.pts[13].x, scat.x[i], scat.x[i+1]],[body.pts[13].y, scat.y[i], scat.y[i+1]]]
+            to_update.append(14)
+            to_update.append(15)
+            i+=2
+        if neck_p:
+            to_update.append(0)
+            neck.x, neck.y = [[body.pts[1].x, scat.x[i]],[body.pts[1].y, scat.y[i]]]
+            
+        
+        head.x = np.cos(np.linspace(0, 2*np.pi, 100))*60+body.pts[0].x
+        head.y = np.sin(np.linspace(0, 2*np.pi, 100))*65+body.pts[0].y
+        
+        
+        #update body
+        for i in range(len(to_update)):
+            body.pts[to_update[i]].x = scat.x[i]
+            body.pts[to_update[i]].y =  scat.y[i]
+        
+
+        
+        return
+    
+    
+    
+    scales = {'x': bqp.LinearScale(min= 0, max= 1000),
+             'y' : bqp.LinearScale(min = 1000, max = 0)}
+    
+    marks = []
+    
+   
+    
+    #movable points: arms first, left side first
+    scat = bqp.Scatter(scales = scales, enable_move = True, update_on_move = True, stroke_width = 7)
+    scat.x , scat.y = np.transpose(to_keep)
+    if general:
+        scat2 = bqp.Scatter(scales = scales, enable_move = True, update_on_move = True, stroke_width = 7)
+        scat2.x , scat2.y = np.transpose(to_keep2)
+        scat3 = bqp.Scatter(scales = scales, enable_move = False, update_on_move = False, stroke_width = 0)
+        scat3.x , scat3.y = scat2.x, scat2.y
+    
+    marks.append(scat)
+    if general:
+        marks.append(scat2)
+    
+    #draw the chest
+    chest = bqp.Lines(scales=scales)
+    chest.x, chest.y = np.transpose([body.pts[1].to_array(), body.pts[2].to_array(), body.pts[9].to_array(), \
+                                     body.pts[13].to_array(), body.pts[6].to_array(), body.pts[1].to_array()])
+    marks.append(chest)
+    
+    
+    #draw the head
+    head = bqp.Lines(scales=scales)
+    head.x = np.cos(np.linspace(0, 2*np.pi, 100))*60+body.pts[0].x
+    head.y = np.sin(np.linspace(0, 2*np.pi, 100))*65+body.pts[0].y
+    marks.append(head)
+    
+    i = 0
+    #draw the left arm
+    left_arm = bqp.Lines(scales=scales)
+    if l_arm:
+        left_arm.x, left_arm.y = [[body.pts[2].x, scat.x[i], scat.x[i+1]],[body.pts[2].y, scat.y[i], scat.y[i+1]]]
+        i +=2
+    else:
+        left_arm.x, left_arm.y = [[body.pts[2].x, body.pts[3].x, body.pts[4].x],[body.pts[2].y, body.pts[3].y, body.pts[4].y]]
+    marks.append(left_arm)
+    
+    
+    #draw the right arm
+    right_arm = bqp.Lines(scales=scales)
+    if r_arm:
+        right_arm.x, right_arm.y = [[body.pts[6].x, scat.x[i], scat.x[i+1]],[body.pts[6].y, scat.y[i], scat.y[i+1]]]
+        i+=2
+    else:
+        right_arm.x, right_arm.y = [[body.pts[6].x, body.pts[7].x, body.pts[8].x],[body.pts[6].y, body.pts[7].y,body.pts[8].y]]
+    
+    marks.append(right_arm)
+    
+    
+    #draw the left leg
+    left_leg = bqp.Lines(scales=scales)
+    if l_leg:
+        left_leg.x, left_leg.y = [[body.pts[9].x, scat.x[i], scat.x[i+1]],[body.pts[9].y, scat.y[i], scat.y[i+1]]]
+        i+=2
+    else:
+        left_leg.x, left_leg.y = [[body.pts[9].x, body.pts[10].x, body.pts[11].x],[body.pts[9].y, body.pts[10].y,body.pts[11].y]]
+    marks.append(left_leg)
+    
+    
+    #draw the right leg
+    right_leg = bqp.Lines(scales=scales)
+    if r_leg:
+        right_leg.x, right_leg.y = [[body.pts[13].x, scat.x[i], scat.x[i+1]],[body.pts[13].y, scat.y[i], scat.y[i+1]]]
+        i+=2
+    else:
+        right_leg.x, right_leg.y = [[body.pts[13].x, body.pts[14].x, body.pts[15].x],[body.pts[13].y, body.pts[14].y, body.pts[15].y]]
+    marks.append(right_leg)
+    
+    
+    #draw the neck
+    neck =  bqp.Lines(scales=scales)
+    if neck_p:
+        neck.x, neck.y = [[body.pts[1].x, scat.x[i]],[body.pts[1].y, scat.y[i]]]
+        i+=1
+    else:
+        neck.x, neck.y = [[body.pts[1].x, body.pts[0].x],[body.pts[1].y, body.pts[0].y]]
+    marks.append(neck)
+    
+    scat.observe(refresh, names=['x', 'y'])
+    if general:
+        scat2.observe(refresh_rot, names=['x', 'y'])
+    
+    
+    return bqp.Figure(marks=marks, padding_y = 0., min_height = 750, min_width = 750)

@@ -28,7 +28,7 @@ class Point:
         
     def scale(self, s):
         """scale the point of s"""
-        return Point(int(self.x * s),int(self.y * s) )
+        return Point(int(round(self.x * s)),int(round(self.y * s)))
     
     def rotate(self, o, angle):
         if self.valid and o.valid:
@@ -46,8 +46,8 @@ class Point:
             ny = xo * s + yo * c
             
             #translate point back
-            self.x = int(nx + o.x)
-            self.y = int(ny + o.y)
+            self.x = int(round(nx + o.x))
+            self.y = int(round(ny + o.y))
         
     def angle(self, p):
         """compute the absolute angle with the horizontal of the line passing by two points"""
