@@ -7,6 +7,7 @@ import time
 
 from collections import Counter
 from collections import OrderedDict
+import pandas
 from scipy import stats
 import random
 import bqplot as bqp
@@ -507,7 +508,62 @@ def plot_research(body, n, bodies, resized_bodies, angles, paintings, deviation,
         
     plt.show()
     f.set_size_inches(10, 10)
+
     
+    
+
+
+def histograms(paintings, neighbors, bodies, wrt_paintings=True, Form=True, Type=True, School=True, Timeline=True):
+    """plot an histogram of the paintings' form, type, school and timeline, specify explicitely which you want,
+    default values are False
+    returns the p-values of each graph"""
+    dup_paintings = list()
+    if wrt_paintings:
+        dup_paintings = paintings[1:]
+        
+    else:
+        for i in bodies:
+            pid = i.painting
+            if not pid == 0:
+                dup_paintings.append(paintings[i.painting])
+    
+    
+    subpaintings = list()
+    for i in neighbors:
+        subpaintings.append(paintings[bodies[i].painting])
+    
+    
+    zipped = zip(*dup_paintings)
+    subzipped = zip(*subpaintings)
+    
+    i = list()
+    if Form:
+        i.append(12)
+    if Type:
+        i.append(13)
+    if School:
+        i.append(14)
+    if Timeline:
+        i.append(15)
+    
+    for k in i:
+        f = Counter(zipped[k])
+        sf = Counter(subzipped[k])
+        for key in f.keys():
+            f[key] /= float(len(dup_paintings))
+            sf[key] /= float(len(subpaintings))
+            
+        
+        f = OrderedDict(sorted(f.items(), key=lambda t: t[0]))
+        sf = OrderedDict(sorted(sf.items(), key=lambda t: t[0]))
+        
+            
+        df = pandas.DataFrame.from_dict(f, orient='index')
+        sdf = pandas.DataFrame.from_dict(sf, orient='index')
+        ax = df.plot(kind='bar', legend=False, colormap='ocean', position=0.1)
+        sdf.plot(kind='bar', ax=ax, legend=False, position = 0.9)
+    return    
+
 
 def interactive_body(body, l_arm = True, r_arm = True, l_leg = True, r_leg = True, neck_p = True, general= True):
     """Plot an interactive body with which we can play."""
