@@ -9,6 +9,7 @@ from collections import Counter
 from collections import OrderedDict
 import pandas
 from scipy import stats
+from scipy import misc
 import random
 import bqplot as bqp
 
@@ -479,32 +480,113 @@ def plot_hypothesis(b_id, n, bodies, resized_bodies, angles, paintings, deviatio
     f.set_size_inches(10, 10)
     
 
-def plot_research(body, n, bodies, resized_bodies, angles, paintings, deviation, approx=False):
-    """plot the bodies found in a hypothesis"""
-    if approx:
-        tree = LSHForest().fit(angles)
-        neighbors = approximate_nearest_neighbors(n, body, deviation, tree)[0]
-    else:
-        tree = pre_fit(angles, deviation, n=100, dist=50)
-        neighbors = nearest_neighbors(n, body, deviation, tree)[1][0]
+    
+    
+    
+def quick_research(body, n, bodies, resized_bodies, angles, paintings, deviation, tree):
+    if isinstance(body,int):
+        body=resized_bodies[body]
+        
+    neighbors = nearest_neighbors(n, body, deviation, tree)[1][0]
     
     subpaintings = list()
     for i in neighbors:
         subpaintings.append(paintings[bodies[i].painting])
     
-    f, ax = plt.subplots(n,1, figsize=(24,n * 9))
+#    f, ax = plt.subplots(n,1, figsize=(24,n * 9))
+    f, ax = plt.subplots(1,n, figsize=(24,10))
+    
     for i in range(n):
         pid = subpaintings[i][1]
         response = requests.get(pid)
         try:
             img = np.array(Image.open(StringIO(response.content)))
+
+            if len(img.shape)==2:
+                #print(img.shape)
+                img = np.repeat(img[:,:,np.newaxis],3,axis=2)
+                
             bodies[neighbors[i]].draw(img, (255,0,0))
         except:
             print 'painting '+str(pid)+' failed being retreived, its id is: '+str(bodies[neighbors[i]].painting)
             img = np.ones((1000,1000,3))
             resized_bodies[neighbors[i]].draw(img, (1,0,0))
+        xm = 100000
+        ym = xm
+        xM = 0
+        yM = 0
+        for limb in bodies[neighbors[i]].limbs:
+            xm = min(xm,min(limb.p1.x,limb.p2.x))
+            ym = min(ym,min(limb.p1.y,limb.p2.y))
+            xM = max(xM,max(limb.p1.x,limb.p2.x))
+            yM = max(yM,max(limb.p1.y,limb.p2.y))
+        yL = float(yM-ym)
+        xL = float(xM-xm)
+        img = img[ym:yM,xm:xM,:]
+        img = misc.imresize(img, (int(128*(yL/xL)), 128))
+        
         ax[i].imshow(img)
         ax[i].axis('off')
+        ax[i].set_title(str(neighbors[i]))
+        
+    plt.show()
+    f.set_size_inches(5,5)    
+    
+    
+    
+def plot_research(body, n, bodies, resized_bodies, angles, paintings, deviation, tree):
+    """plot the bodies found in a hypothesis"""
+    #if approx:
+    #    tree = LSHForest().fit(angles)
+    #    neighbors = approximate_nearest_neighbors(n, body, deviation, tree)[0]
+    #else:
+    #    tree = pre_fit(angles, deviation, n=100, dist=50)
+    
+    if isinstance(body,int):
+        body=resized_bodies[body]
+    
+    neighbors = nearest_neighbors(n, body, deviation, tree)[1][0]
+    
+    subpaintings = list()
+    for i in neighbors:
+        
+        subpaintings.append(paintings[bodies[i].painting])
+    
+   # print(len(subpaintings))
+    #f, ax = plt.subplots( math.ceil(n/3) , 3 , figsize=(24,n * 9))
+    f, ax = plt.subplots( int(math.ceil(n/3.0)) , 3 , figsize=(24,16*n))
+    ii = 0
+    jj = 0
+    for i in range(n):
+        pid = subpaintings[i][1]
+        #print pid
+        response = requests.get(pid)
+        try:
+            img = np.array(Image.open(StringIO(response.content)))
+            if len(img.shape)==2:
+                #print(img.shape)
+                img = np.repeat(img[:,:,np.newaxis],3,axis=2)
+            bodies[neighbors[i]].draw(img, (255,0,0))
+        except:
+            print 'painting '+str(pid)+' failed being retreived, its id is: '+str(bodies[neighbors[i]].painting)
+            img = np.ones((1000,1000,3))
+            resized_bodies[neighbors[i]].draw(img, (1,0,0))
+        img = misc.imresize(img, (256, 256))
+        
+        if(int(math.ceil(n/3.0)) > 1):
+            ax[ii][jj].imshow(img)
+            ax[ii][jj].axis('off')
+            ax[ii][jj].set_title(str(neighbors[i]))            
+        else:
+            ax[jj].imshow(img)
+            ax[jj].axis('off')
+            ax[jj].set_title(str(neighbors[i]))  
+        
+        jj += 1
+        if(jj==3):
+            jj=0
+            ii += 1
+            
         
     plt.show()
     f.set_size_inches(10, 10)
