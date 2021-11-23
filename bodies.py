@@ -16,6 +16,7 @@ import operator
 
 from PIL import Image
 from io import StringIO
+from skimage import io
 import requests
 
 import bqplot as bqp
@@ -697,8 +698,9 @@ def plot_n_nearest_neighbors(angles, body_angles, bodies, paintings, deviation, 
     f, ax = plt.subplots(n,2, figsize=(24,n * 15))
     for i in range(n):
         p_id = bodies[bd_i[i]][3]
-        response = requests.get(paintings[p_id][1])
-        img = np.array(Image.open(StringIO(response.content)))
+        # response = requests.get(paintings[p_id][1])
+        # img = np.array(Image.open(StringIO(response.content)))
+        img = io.imread(paintings[p_id][1])
         img = points_to_skeleton(bodies[bd_i[i]], (255, 0, 0), img)
         ax[i, 0].imshow(img)
         ax[i, 1].text(0.2,0.5,'Time period: ' + str(paintings[p_id][15]) + '(' +  str(paintings[p_id][8]) + ')', fontsize = 20)
