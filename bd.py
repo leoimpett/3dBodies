@@ -13,7 +13,7 @@ import random
 import bqplot as bqp
 
 from PIL import Image
-from StringIO import StringIO
+from io import StringIO
 import requests
 
 import matplotlib

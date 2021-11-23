@@ -15,7 +15,7 @@ import pandas
 import operator
 
 from PIL import Image
-from StringIO import StringIO
+from io import StringIO
 import requests
 
 import bqplot as bqp
